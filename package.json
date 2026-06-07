@@ -1,0 +1,56 @@
+{
+  "name": "@sightspool/sdk",
+  "version": "0.1.0",
+  "description": "Sightspool in-product capture SDK — captures user intent, effort, and account at the moment of friction.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE", "NOTICE"],
+  "sideEffects": false,
+  "license": "Apache-2.0",
+  "author": "Sightspool",
+  "homepage": "https://github.com/sightspool/sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sightspool/sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sightspool/sdk/issues"
+  },
+  "keywords": [
+    "sightspool",
+    "analytics",
+    "product-analytics",
+    "user-research",
+    "ux",
+    "intent",
+    "telemetry",
+    "sdk"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "test": "node --test __tests__/*.test.ts",
+    "prepublishOnly": "pnpm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.4",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}
