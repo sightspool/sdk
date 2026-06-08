@@ -14,8 +14,8 @@ them).
 > **not** act on your surface (surveys/nudges/experiments are Wave 0005, and every one
 > is human-gated). Trigger sensitivity and intent inference calibrate with live traffic.
 
-**Docs:** [full reference + CSP & framework guides](https://sightspool.github.io/sdk/) ·
-[llms.txt](https://sightspool.github.io/sdk/llms.txt) (the machine-readable install/CSP/config
+**Docs:** [full reference + CSP & framework guides](https://sdk.sightspool.com/) ·
+[llms.txt](https://sdk.sightspool.com/llms.txt) (the machine-readable install/CSP/config
 doc for agents) · [npm](https://www.npmjs.com/package/@sightspool/sdk)
 
 ---

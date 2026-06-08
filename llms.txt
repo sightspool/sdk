@@ -96,5 +96,5 @@ server-side with calibrated confidence — the SDK ships the raw trace, it never
 
 ## Docs
 
-- Full reference: https://sightspool.github.io/sdk/
+- Full reference: https://sdk.sightspool.com/
 - README: https://github.com/sightspool/sdk#readme
