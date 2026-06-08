@@ -1,0 +1,100 @@
+# @sightspool/sdk
+
+> In-product capture SDK for Sightspool. Drop one script tag (or the npm package) into a
+> web app and it captures, at the moment of friction, what a user was trying to do
+> (intent), how hard it was (effort), and the account behind it — emitting one linked
+> Signal to your Sightspool workspace. Publishable key, privacy-conscious by default,
+> never throws into the host app. Apache-2.0, published to npm with SLSA provenance.
+
+This file is for AI agents and tools installing or evaluating the SDK. It is the
+install + key + CSP + privacy reference needed to wire the SDK correctly on the first
+try, so an agent can verify the vendor and the integration without reading source.
+
+## Identity & verifiability
+
+- npm: https://www.npmjs.com/package/@sightspool/sdk — scope `@sightspool`, public, Apache-2.0, SLSA provenance ("Built and signed on GitHub Actions")
+- Source: https://github.com/sightspool/sdk — public repo, the build that produces the npm artifact and the served `sdk.global.js`
+- Issues / roadmap: https://github.com/sightspool/sdk/issues
+- Vendor: Sightspool, AI-led UX intelligence — https://sightspool.com
+- Bundle host: https://app.sightspool.com/sdk.global.js (ungated, served cross-origin)
+
+## Install — script tag (no build)
+
+One tag; it auto-init's from `data-sightspool-key`:
+
+    <script async src="https://app.sightspool.com/sdk.global.js" data-sightspool-key="pk_live_…"></script>
+
+Then, once the user is known:
+
+    window.Sightspool && window.Sightspool.identify(userId, { account, plan })
+
+## Install — npm / bundler
+
+    npm install @sightspool/sdk
+
+    import Sightspool from '@sightspool/sdk'
+    Sightspool.init({ key: process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY })  // or VITE_/PUBLIC_ equivalent
+    Sightspool.identify(userId, { account, plan })
+
+For Next.js use `next/script` with `strategy="afterInteractive"` and
+`data-sightspool-key={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}`.
+
+## Keys
+
+- Publishable key — safe to ship in client JS (the Stripe `pk_` model). Issue from Connections → In-product SDK.
+- `pk_test_…` for development / staging / preview; `pk_live_…` for production.
+- The SDK treats both prefixes identically on the client; the prefix scopes the environment at ingest, so test traffic never mixes into production analytics.
+- Keep it in a client-exposed env var (`NEXT_PUBLIC_…` / `VITE_…` / `PUBLIC_…`).
+
+## Content-Security-Policy
+
+- Script-tag install (same host for both directives):
+    script-src  https://app.sightspool.com
+    connect-src https://app.sightspool.com
+- npm / bundler install (the script is first-party): connect-src https://app.sightspool.com
+- Custom `endpoint` → use that origin in `connect-src`.
+- `strict-dynamic`: nonce the `<script>` tag; `connect-src` still needs the ingest host.
+- The prompt UI injects a `<style>` into a shadow root; a strict `style-src` without `'unsafe-inline'` leaves the prompt unstyled but still functional.
+
+## Configuration — init(config), all optional except key
+
+- key (string, required): publishable key.
+- endpoint (string): ingest base URL. Default = the bundle's origin (script tag) or https://app.sightspool.com (npm).
+- boundaryAsk (boolean, default true): the one-tap "did you do what you came to do?" ask at session boundaries.
+- consent (boolean, default true): start capturing immediately; false → stay paused until Sightspool.consent(true).
+- redact (string[]): CSS selectors whose captured text is masked (‹redacted›) before egress. The event is still recorded.
+- block (string[]): CSS selectors whose events are dropped entirely (same as data-sightspool-ignore on the element).
+- captureOnLocalhost (boolean, default false): by default the SDK no-ops on localhost (localhost, 127.0.0.1, *.local, *.localhost).
+- debug (boolean, default false): log every capture decision to the console.
+
+Script-tag attribute equivalents: data-sightspool-key, data-sightspool-endpoint,
+data-sightspool-redact, data-sightspool-block (comma-separated selector lists),
+data-sightspool-capture-localhost, data-sightspool-debug.
+
+## API
+
+- Sightspool.init(config)
+- Sightspool.identify(userId, { account?, plan? })
+- Sightspool.consent(granted: boolean)  — runtime consent gate; wire to your cookie banner
+- Sightspool.start()  — begin capture if init'd with { consent: false }
+- Sightspool.stop()   — pause capture and flush
+
+## What it captures
+
+Routes/screen sequence, clicks, dead-clicks, rage-clicks, JS errors, failed requests, and
+debounced search/filter/command-palette input values (stated intent). At a friction moment
+or session boundary it may show one rate-limited, fatigue-aware prompt. Each capture emits
+one Signal (intent + path + account + effort); intent and effort are constructed
+server-side with calibrated confidence — the SDK ships the raw trace, it never guesses.
+
+## Privacy (on by default)
+
+- PII masked before egress: emails → ‹email›, long digit runs → ‹num›; password/email/tel/creditcard inputs are never captured.
+- No cookies, no localStorage, no raw keystrokes.
+- No-op on localhost by default (captureOnLocalhost to override). Never throws into the host app.
+- Opt-outs: data-sightspool-ignore (or a block selector) drops a subtree; a redact selector masks text; Sightspool.consent(false) gates everything until granted.
+
+## Docs
+
+- Full reference: https://sightspool.github.io/sdk/
+- README: https://github.com/sightspool/sdk#readme

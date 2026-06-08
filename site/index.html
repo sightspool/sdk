@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@sightspool/sdk — in-product capture SDK</title>
+    <meta
+      name="description"
+      content="Install, configure, and verify the Sightspool in-product capture SDK: one script tag or npm package that captures user intent, effort, and account at the moment of friction. Includes CSP directives, framework snippets, key management, and the privacy posture."
+    />
+    <link rel="canonical" href="https://sightspool.github.io/sdk/" />
+    <style>
+      :root {
+        --fg: #18181b;
+        --muted: #52525b;
+        --faint: #71717a;
+        --line: #e4e4e7;
+        --bg: #ffffff;
+        --code-bg: #f4f4f5;
+        --accent: #18181b;
+        --max: 760px;
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+        line-height: 1.6;
+        font-size: 16px;
+      }
+      .wrap { max-width: var(--max); margin: 0 auto; padding: 48px 20px 96px; }
+      header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 8px; }
+      h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
+      h2 { font-size: 22px; margin: 44px 0 12px; letter-spacing: -0.01em; }
+      h3 { font-size: 17px; margin: 28px 0 8px; }
+      p { margin: 12px 0; }
+      .lede { font-size: 18px; color: var(--muted); }
+      .status { font-size: 14px; color: var(--faint); margin-top: 14px; }
+      a { color: var(--accent); text-underline-offset: 2px; }
+      nav.links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 16px 0 0; font-size: 14px; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em;
+        background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+      pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+        padding: 14px 16px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+      pre code { background: none; padding: 0; font-size: inherit; }
+      table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14.5px; }
+      th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+      th { font-weight: 600; }
+      td code { white-space: nowrap; }
+      blockquote { margin: 16px 0; padding: 10px 16px; border-left: 3px solid var(--line);
+        color: var(--muted); background: #fafafa; border-radius: 0 8px 8px 0; }
+      .toc { font-size: 14px; color: var(--muted); margin: 24px 0 0; }
+      .toc a { margin-right: 14px; white-space: nowrap; }
+      footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line);
+        font-size: 14px; color: var(--faint); }
+      hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>@sightspool/sdk</h1>
+        <p class="lede">
+          In-product capture for <a href="https://sightspool.com">Sightspool</a>. One script
+          tag (or npm package) captures, at the moment of friction, what a user was trying to
+          do (<em>intent</em>), how hard it was (<em>effort</em>), and the account behind it —
+          emitting one linked <strong>Signal</strong> to your workspace.
+        </p>
+        <nav class="links">
+          <a href="https://www.npmjs.com/package/@sightspool/sdk">npm</a>
+          <a href="https://github.com/sightspool/sdk">GitHub</a>
+          <a href="https://github.com/sightspool/sdk/issues">Issues</a>
+          <a href="llms.txt">llms.txt</a>
+          <a href="https://github.com/sightspool/sdk/blob/main/LICENSE">Apache-2.0</a>
+        </nav>
+        <p class="status">
+          v0.1, collect-side. The SDK <strong>senses</strong> — it captures and analyses; it
+          does not act on your surface (interventions are human-gated, a later wave).
+          Published to npm with <strong>SLSA provenance</strong> ("Built and signed on GitHub
+          Actions"), built in this public repo.
+        </p>
+      </header>
+
+      <p class="toc">
+        <a href="#install">Install</a>
+        <a href="#keys">Keys</a>
+        <a href="#frameworks">Frameworks</a>
+        <a href="#csp">CSP</a>
+        <a href="#config">Configuration</a>
+        <a href="#captures">What it captures</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#api">API</a>
+        <a href="#verify">Verify the install</a>
+      </p>
+
+      <h2 id="install">Install</h2>
+
+      <h3>Script tag (no build step)</h3>
+      <p>One tag — it auto-<code>init</code>s from its <code>data-sightspool-key</code>:</p>
+      <pre><code>&lt;script
+  async
+  src="https://app.sightspool.com/sdk.global.js"
+  data-sightspool-key="pk_live_…"
+&gt;&lt;/script&gt;</code></pre>
+      <p>Then identify the user once known (guard with <code>&amp;&amp;</code> until the script has loaded):</p>
+      <pre><code>window.Sightspool &amp;&amp; window.Sightspool.identify(userId, { account, plan })</code></pre>
+
+      <h3>npm / bundler</h3>
+      <pre><code>npm install @sightspool/sdk</code></pre>
+      <pre><code>import Sightspool from '@sightspool/sdk'
+
+Sightspool.init({ key: process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY })
+Sightspool.identify(userId, { account, plan })</code></pre>
+      <p>
+        <code>init</code> boots passive capture immediately. <code>identify</code> attaches the
+        user to an <strong>account</strong> + <strong>plan</strong> — the only required wiring,
+        and what lets Sightspool rank by customer (and, with a billing source, by MRR).
+      </p>
+
+      <h2 id="keys">Keys &amp; environments</h2>
+      <p>
+        Your key is <strong>publishable</strong> — safe to ship in client JS (the Stripe
+        <code>pk_</code> model). Two prefixes, one per environment:
+      </p>
+      <table>
+        <thead><tr><th>prefix</th><th>use it for</th></tr></thead>
+        <tbody>
+          <tr><td><code>pk_test_…</code></td><td>development / staging / preview deploys</td></tr>
+          <tr><td><code>pk_live_…</code></td><td>production</td></tr>
+        </tbody>
+      </table>
+      <p>
+        The SDK treats both prefixes <strong>identically</strong> — there's no client-side
+        special-casing; the prefix tells <em>Sightspool</em> (at ingest) which environment a
+        Signal belongs to, so test traffic never mixes into production analytics. Issue both
+        from <strong>Connections → In-product SDK</strong>.
+      </p>
+      <blockquote>
+        The SDK also <strong>no-ops on localhost</strong> by default (see
+        <code>captureOnLocalhost</code>), so even a <code>pk_live_</code> key won't capture from
+        <code>npm run dev</code>. Test keys are for <em>deployed</em> non-prod environments.
+      </blockquote>
+      <p>Keep the key in a client-exposed env var (<code>NEXT_PUBLIC_</code> / <code>VITE_</code> / <code>PUBLIC_</code> …) and select test vs live per environment:</p>
+      <pre><code># .env.development / preview
+NEXT_PUBLIC_SIGHTSPOOL_KEY=pk_test_…
+# .env.production
+NEXT_PUBLIC_SIGHTSPOOL_KEY=pk_live_…</code></pre>
+
+      <h2 id="frameworks">Frameworks</h2>
+
+      <h3>Next.js (App Router) — <code>next/script</code></h3>
+      <p>The idiomatic install is <code>next/script</code>, not a raw <code>&lt;script&gt;</code>. Add it once in your root layout:</p>
+      <pre><code>// app/layout.tsx
+import Script from 'next/script'
+
+export default function RootLayout({ children }) {
+  return (
+    &lt;html lang="en"&gt;
+      &lt;body&gt;
+        {children}
+        &lt;Script
+          src="https://app.sightspool.com/sdk.global.js"
+          data-sightspool-key={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}
+          strategy="afterInteractive"
+        /&gt;
+      &lt;/body&gt;
+    &lt;/html&gt;
+  )
+}</code></pre>
+      <p>Then <code>identify</code> the user once known (a client component after auth):</p>
+      <pre><code>'use client'
+useEffect(() =&gt; {
+  window.Sightspool?.identify(user.id, { account: user.account, plan: user.plan })
+}, [user])</code></pre>
+      <blockquote>
+        <code>data-sightspool-key</code> is inlined at build time, so
+        <code>NEXT_PUBLIC_SIGHTSPOOL_KEY</code> must be set where Next builds.
+        <code>strategy="afterInteractive"</code> keeps it off the critical path.
+      </blockquote>
+
+      <h3>React (bundler install)</h3>
+      <pre><code>import { useEffect } from 'react'
+import Sightspool from '@sightspool/sdk'
+
+export function SightspoolBoot({ userId, account, plan }) {
+  useEffect(() =&gt; { Sightspool.init({ key: import.meta.env.VITE_SIGHTSPOOL_KEY }) }, [])
+  useEffect(() =&gt; { if (userId) Sightspool.identify(userId, { account, plan }) }, [userId, account, plan])
+  return null
+}</code></pre>
+      <blockquote>
+        A first-class <strong><code>@sightspool/react</code></strong> wrapper
+        (<code>&lt;SightspoolProvider&gt;</code> + a <code>useSightspool</code> hook) is planned —
+        <a href="https://github.com/sightspool/sdk/issues/3">issue #3</a>.
+      </blockquote>
+
+      <h2 id="csp">Content-Security-Policy</h2>
+      <p>
+        Allow the SDK's two footprints — the <strong>script load</strong> and the
+        <strong>ingest beacon</strong>. With the standard install they're the <em>same host</em>
+        (the bundle is served from the app it ingests to), so it's one host in two directives:
+      </p>
+      <p><strong>Script-tag install</strong></p>
+      <pre><code>script-src  https://app.sightspool.com;
+connect-src https://app.sightspool.com;</code></pre>
+      <p><strong>npm / bundler install</strong> — the SDK is bundled into your own first-party JS, so no <code>script-src</code> host is needed; only the ingest origin:</p>
+      <pre><code>connect-src https://app.sightspool.com;</code></pre>
+      <p>
+        If you pass a custom <code>endpoint</code>, use that origin in <code>connect-src</code>.
+        The beacon goes via <code>navigator.sendBeacon</code> with a <code>fetch(keepalive)</code>
+        fallback — both governed by <code>connect-src</code>.
+      </p>
+      <ul>
+        <li>
+          <strong><code>strict-dynamic</code> / nonce.</strong> Under
+          <code>script-src 'strict-dynamic'</code>, host allowlists are ignored for scripts —
+          give the <code>&lt;script&gt;</code> tag your per-request nonce
+          (<code>nonce={nonce}</code> in Next). <code>connect-src</code> still needs the ingest host.
+        </li>
+        <li>
+          <strong>Prompt styles.</strong> The one-tap prompt renders into a <strong>shadow
+          root</strong> and injects its own <code>&lt;style&gt;</code>. Under a strict
+          <code>style-src</code> without <code>'unsafe-inline'</code>, those styles may not apply
+          — the prompt stays <strong>functional but unstyled</strong> (the SDK never throws into
+          your page). Add <code>'unsafe-inline'</code> to <code>style-src</code> to style it.
+        </li>
+      </ul>
+
+      <h2 id="config">Configuration</h2>
+      <p><code>init(config)</code> — all optional except <code>key</code>. Script-tag installs use the <code>data-sightspool-*</code> attribute equivalents.</p>
+      <table>
+        <thead><tr><th>option</th><th>default</th><th>purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>key</code></td><td>—</td><td><strong>required.</strong> Publishable key (<code>pk_test_…</code> / <code>pk_live_…</code>).</td></tr>
+          <tr><td><code>endpoint</code></td><td>bundle origin / <code>app.sightspool.com</code></td><td>Ingest base URL. The <code>&lt;script&gt;</code> install auto-resolves it to where <code>sdk.global.js</code> was served from.</td></tr>
+          <tr><td><code>boundaryAsk</code></td><td><code>true</code></td><td>Show the one-tap "did you do what you came to do?" ask at session boundaries.</td></tr>
+          <tr><td><code>consent</code></td><td><code>true</code></td><td>Start capturing immediately. <code>false</code> → stay paused until <code>Sightspool.consent(true)</code>.</td></tr>
+          <tr><td><code>redact</code></td><td><code>[]</code></td><td>CSS selectors whose captured text is <strong>masked</strong> (<code>‹redacted›</code>) before egress. The event is still recorded.</td></tr>
+          <tr><td><code>block</code></td><td><code>[]</code></td><td>CSS selectors whose events are <strong>dropped entirely</strong> (same as <code>data-sightspool-ignore</code>).</td></tr>
+          <tr><td><code>captureOnLocalhost</code></td><td><code>false</code></td><td>By default the SDK <strong>no-ops on localhost</strong>. Set <code>true</code> to capture locally.</td></tr>
+          <tr><td><code>debug</code></td><td><code>false</code></td><td>Log every capture decision to the console (<code>[sightspool] …</code>).</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Script-tag attributes: <code>data-sightspool-key</code>,
+        <code>data-sightspool-endpoint</code>, <code>data-sightspool-redact</code>,
+        <code>data-sightspool-block</code> (comma-separated selector lists),
+        <code>data-sightspool-capture-localhost</code>, <code>data-sightspool-debug</code>.
+      </p>
+
+      <h2 id="captures">What it captures</h2>
+      <p>
+        Routes/screen sequence, clicks, <strong>dead-clicks</strong> and
+        <strong>rage-clicks</strong>, JS errors and failed requests, and debounced
+        search / filter / command-palette input values (<strong>stated intent</strong>). At a
+        friction moment or session boundary it may show one rate-limited, fatigue-aware prompt.
+        Each capture emits one <strong>Signal</strong> (intent + path + account + effort); intent
+        and effort are constructed server-side with calibrated confidence — the SDK ships the raw
+        trace, it never guesses.
+      </p>
+
+      <h2 id="privacy">Privacy</h2>
+      <p>Privacy-conscious <strong>by default</strong> — on without any config:</p>
+      <ul>
+        <li><strong>PII masked before egress.</strong> Emails → <code>‹email›</code>, long digit runs → <code>‹num›</code>. Password / email / <code>tel</code> / credit-card inputs are never captured.</li>
+        <li><strong>No cookies, no <code>localStorage</code>, no raw keystrokes.</strong> Debounced search-input values, not a keylog.</li>
+        <li><strong>Suppressed on localhost</strong> so dev traffic never pollutes analytics (<code>captureOnLocalhost</code> to override).</li>
+        <li><strong>Never throws into your app.</strong> Every path is wrapped; capture degrades silently.</li>
+      </ul>
+      <p>You control the rest: <code>data-sightspool-ignore</code> or a <code>block</code> selector drops a subtree; a <code>redact</code> selector masks a field's text; <code>Sightspool.consent(false)</code> gates everything until your cookie banner says otherwise.</p>
+
+      <h2 id="api">API</h2>
+      <pre><code>Sightspool.init(config): void
+Sightspool.identify(userId, { account?, plan? }): void
+Sightspool.consent(granted: boolean): void  // runtime gate; wire to your cookie banner
+Sightspool.start(): void   // begin capture if init'd with { consent: false }
+Sightspool.stop(): void    // pause capture and flush</code></pre>
+
+      <h2 id="verify">Verify the install</h2>
+      <p>
+        Add <code>data-sightspool-debug</code> (or <code>init({ debug: true })</code>) to log every
+        capture decision to the console as <code>[sightspool] …</code>. In your Sightspool
+        workspace, the <strong>Connections → In-product SDK</strong> card shows raw Signals landing
+        within seconds of the first beacon (pre-inference), and the <strong>/signals</strong> page
+        shows the inferred inbox. Remember capture is suppressed on localhost unless you set
+        <code>captureOnLocalhost</code>.
+      </p>
+
+      <footer>
+        <p>
+          @sightspool/sdk · Apache-2.0 · built in
+          <a href="https://github.com/sightspool/sdk">github.com/sightspool/sdk</a> ·
+          machine-readable: <a href="llms.txt">llms.txt</a>
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

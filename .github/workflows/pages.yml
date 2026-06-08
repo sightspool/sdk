@@ -1,0 +1,43 @@
+name: Docs site
+
+# Deploys the static docs site in `site/` to GitHub Pages. One-time setup:
+#   repo Settings → Pages → Source = "GitHub Actions".
+# Served at https://sightspool.github.io/sdk/ (a custom domain can be set later in
+# Settings → Pages). The canonical llms.txt lives at the repo root and is copied into
+# the artifact so it's served at /llms.txt alongside the site.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "llms.txt"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deploy; let an in-progress run finish (don't cancel a live deploy).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage llms.txt into the site
+        run: cp llms.txt site/llms.txt
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4

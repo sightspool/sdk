@@ -14,6 +14,10 @@ them).
 > **not** act on your surface (surveys/nudges/experiments are Wave 0005, and every one
 > is human-gated). Trigger sensitivity and intent inference calibrate with live traffic.
 
+**Docs:** [full reference + CSP & framework guides](https://sightspool.github.io/sdk/) ·
+[llms.txt](https://sightspool.github.io/sdk/llms.txt) (the machine-readable install/CSP/config
+doc for agents) · [npm](https://www.npmjs.com/package/@sightspool/sdk)
+
 ---
 
 ## Install — two lines
@@ -83,7 +87,7 @@ The script tag also reads these optional attributes (the no-build equivalent of 
 
 | option | type | default | purpose |
 |---|---|---|---|
-| `key` | `string` | — | **required.** Your publishable key (`pk_live_…`), from the Connections → In-product SDK card. Publishable — safe to ship in client JS. |
+| `key` | `string` | — | **required.** Your publishable key (`pk_test_…` / `pk_live_…`), from the Connections → In-product SDK card. Publishable — safe to ship in client JS. See [Keys & environments](#keys--environments). |
 | `endpoint` | `string` | the bundle's origin (script tag) / `https://app.sightspool.com` (npm) | Ingest base URL. The `<script>` install auto-resolves it to wherever `sdk.global.js` was served from (your app), so the key alone is enough; override for a CDN-hosted bundle or dev. |
 | `boundaryAsk` | `boolean` | `true` | Show the one-tap "did you do what you came to do?" ask at session boundaries. |
 | `consent` | `boolean` | `true` | Start capturing immediately. Set `false` to stay paused until you call `Sightspool.consent(true)` (or `start()`) after obtaining consent. |
@@ -104,6 +108,140 @@ un-allowlisted origin.
 | Mask a field's text but still log the interaction | a `redact` selector (text → `‹redacted›`) |
 | Wait for cookie-banner consent | init `{ consent: false }` then `Sightspool.consent(true)` |
 | Keep dev traffic out of analytics | nothing — localhost is suppressed by default |
+
+---
+
+## Keys & environments
+
+Your key is **publishable** — safe to ship in client JS (the Stripe `pk_` model). Two
+prefixes, one per environment:
+
+| prefix | use it for |
+|---|---|
+| `pk_test_…` | development / staging / preview deploys |
+| `pk_live_…` | production |
+
+The SDK treats both prefixes **identically** — there's no client-side special-casing; the
+prefix tells *Sightspool* (at ingest) which environment a Signal belongs to, so test traffic
+never mixes into production analytics. Issue both from **Connections → In-product SDK**.
+
+> The SDK also **no-ops on localhost** by default (see `captureOnLocalhost`), so even a
+> `pk_live_` key won't capture from `npm run dev`. Test keys are for *deployed* non-prod
+> environments (staging, previews).
+
+Keep the key in an environment variable rather than hardcoding it, and pick test vs live by
+environment. The key is exposed to the browser, so use your framework's **client** env-var
+prefix (`NEXT_PUBLIC_`, `VITE_`, `PUBLIC_`, …) — it's publishable, so that's expected:
+
+```js
+Sightspool.init({ key: process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY })
+```
+
+```bash
+# .env.development / preview
+NEXT_PUBLIC_SIGHTSPOOL_KEY=pk_test_…
+# .env.production
+NEXT_PUBLIC_SIGHTSPOOL_KEY=pk_live_…
+```
+
+---
+
+## Framework integration
+
+### Next.js (App Router) — `next/script`
+
+The idiomatic install is `next/script`, not a raw `<script>`. Add it once in your root
+layout — the tag auto-`init`s from `data-sightspool-key`:
+
+```tsx
+// app/layout.tsx
+import Script from 'next/script'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        <Script
+          src="https://app.sightspool.com/sdk.global.js"
+          data-sightspool-key={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}
+          strategy="afterInteractive"
+        />
+      </body>
+    </html>
+  )
+}
+```
+
+Then `identify` the user once known (e.g. a client component after auth):
+
+```tsx
+'use client'
+useEffect(() => {
+  window.Sightspool?.identify(user.id, { account: user.account, plan: user.plan })
+}, [user])
+```
+
+> `data-sightspool-key` is inlined at build time, so `NEXT_PUBLIC_SIGHTSPOOL_KEY` must be set
+> in the environment Next builds in. `strategy="afterInteractive"` keeps it off the critical
+> path.
+
+### React (bundler install)
+
+Install the package and call `init` once at app start (a top-level effect or your entry
+module):
+
+```tsx
+import { useEffect } from 'react'
+import Sightspool from '@sightspool/sdk'
+
+export function SightspoolBoot({ userId, account, plan }) {
+  useEffect(() => {
+    Sightspool.init({ key: import.meta.env.VITE_SIGHTSPOOL_KEY })
+  }, [])
+  useEffect(() => {
+    if (userId) Sightspool.identify(userId, { account, plan })
+  }, [userId, account, plan])
+  return null
+}
+```
+
+> A first-class **`@sightspool/react`** wrapper (a `<SightspoolProvider>` + a `useSightspool`
+> hook over `init`/`identify`) is planned —
+> [issue #3](https://github.com/sightspool/sdk/issues/3).
+
+---
+
+## Content-Security-Policy
+
+If your app sets a CSP, allow the SDK's two footprints — the **script load** and the
+**ingest beacon**. With the standard install they're the *same host* (the bundle is served
+from the app it ingests to), so it's one host in two directives:
+
+**Script-tag install**
+
+```
+script-src  https://app.sightspool.com;
+connect-src https://app.sightspool.com;
+```
+
+**npm / bundler install** — the SDK is bundled into your own first-party JS, so no
+`script-src` host is needed; only the ingest origin:
+
+```
+connect-src https://app.sightspool.com;
+```
+
+If you pass a custom `endpoint`, use *that* origin in `connect-src`. The beacon goes via
+`navigator.sendBeacon` with a `fetch(keepalive)` fallback — both governed by `connect-src`.
+
+- **`strict-dynamic` / nonce.** Under `script-src 'strict-dynamic'`, host allowlists are
+  ignored for scripts — give the `<script>` tag your per-request nonce (`nonce={nonce}` in
+  Next) so it's trusted. `connect-src` still needs the ingest host.
+- **Prompt styles.** The one-tap prompt renders into a **shadow root** and injects its own
+  `<style>`. Under a strict `style-src` without `'unsafe-inline'`, those styles may not apply
+  — the prompt stays **fully functional but unstyled** (the SDK never throws into your page).
+  Add `'unsafe-inline'` to `style-src` if you want it styled.
 
 ---
 

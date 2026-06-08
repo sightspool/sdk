@@ -3,3 +3,6 @@ dist/
 *.tsbuildinfo
 .DS_Store
 *.log
+
+# Generated at Pages deploy time (canonical llms.txt is at the repo root).
+site/llms.txt
