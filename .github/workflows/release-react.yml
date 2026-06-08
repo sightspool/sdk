@@ -43,13 +43,6 @@ jobs:
       # publish doesn't rewrite workspace: protocols the way pnpm publish does.
       - name: Publish @sightspool/react
         working-directory: packages/react
-        # TEMPORARY (bootstrap only): npm requires a package to exist before a Trusted
-        # Publisher can be configured, so the FIRST publish (react-v0.1.0) authenticates
-        # with a token. Provenance still attaches (id-token: write + CI). After v0.1.0 is
-        # live: configure the Trusted Publisher for @sightspool/react, delete this `env:`
-        # block, then delete the NPM_TOKEN secret + revoke the token. Steady state = OIDC.
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           npm pkg delete devDependencies.@sightspool/sdk
           npm publish --provenance --access public
