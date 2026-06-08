@@ -13,6 +13,7 @@ try, so an agent can verify the vendor and the integration without reading sourc
 ## Identity & verifiability
 
 - npm: https://www.npmjs.com/package/@sightspool/sdk — scope `@sightspool`, public, Apache-2.0, SLSA provenance ("Built and signed on GitHub Actions")
+- React bindings: https://www.npmjs.com/package/@sightspool/react — `<SightspoolProvider>` + hooks over the core SDK
 - Source: https://github.com/sightspool/sdk — public repo, the build that produces the npm artifact and the served `sdk.global.js`
 - Issues / roadmap: https://github.com/sightspool/sdk/issues
 - Vendor: Sightspool, AI-led UX intelligence — https://sightspool.com
@@ -38,6 +39,20 @@ Then, once the user is known:
 
 For Next.js use `next/script` with `strategy="afterInteractive"` and
 `data-sightspool-key={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}`.
+
+## Install — React (@sightspool/react)
+
+    npm install @sightspool/react @sightspool/sdk react
+
+    import { SightspoolProvider } from '@sightspool/react'
+    <SightspoolProvider apiKey={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY} identity={user && { userId: user.id, account: user.account, plan: user.plan }}>
+      <App />
+    </SightspoolProvider>
+
+`@sightspool/sdk` and `react` are peer dependencies. The provider ships a "use client"
+banner (drops into a Next.js App Router server layout), re-fires identify when identity
+changes, and takes a reactive `consent` prop for cookie banners. Hooks: useSightspool(),
+useSightspoolIdentify(identity).
 
 ## Keys
 

@@ -186,29 +186,44 @@ useEffect(() => {
 > in the environment Next builds in. `strategy="afterInteractive"` keeps it off the critical
 > path.
 
-### React (bundler install)
+### React / Next.js — `@sightspool/react`
 
-Install the package and call `init` once at app start (a top-level effect or your entry
-module):
+For React apps, use the official bindings — a declarative provider over the core SDK:
+
+```bash
+npm install @sightspool/react @sightspool/sdk react
+```
+
+```tsx
+import { SightspoolProvider } from '@sightspool/react'
+
+<SightspoolProvider
+  apiKey={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY!}
+  identity={user && { userId: user.id, account: user.account, plan: user.plan }}
+>
+  <App />
+</SightspoolProvider>
+```
+
+It ships a `"use client"` banner (drops straight into a Next.js App Router **server**
+layout), re-fires `identify` whenever `identity` changes, and takes a reactive `consent`
+prop for cookie banners. Full API:
+[@sightspool/react](https://www.npmjs.com/package/@sightspool/react) ·
+[packages/react](https://github.com/sightspool/sdk/tree/main/packages/react).
+
+<details><summary>Or wire the core SDK by hand (no wrapper)</summary>
 
 ```tsx
 import { useEffect } from 'react'
 import Sightspool from '@sightspool/sdk'
 
 export function SightspoolBoot({ userId, account, plan }) {
-  useEffect(() => {
-    Sightspool.init({ key: import.meta.env.VITE_SIGHTSPOOL_KEY })
-  }, [])
-  useEffect(() => {
-    if (userId) Sightspool.identify(userId, { account, plan })
-  }, [userId, account, plan])
+  useEffect(() => { Sightspool.init({ key: import.meta.env.VITE_SIGHTSPOOL_KEY }) }, [])
+  useEffect(() => { if (userId) Sightspool.identify(userId, { account, plan }) }, [userId, account, plan])
   return null
 }
 ```
-
-> A first-class **`@sightspool/react`** wrapper (a `<SightspoolProvider>` + a `useSightspool`
-> hook over `init`/`identify`) is planned —
-> [issue #3](https://github.com/sightspool/sdk/issues/3).
+</details>
 
 ---
 

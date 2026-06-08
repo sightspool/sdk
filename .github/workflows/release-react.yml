@@ -1,0 +1,48 @@
+name: Release react
+
+# Publishes @sightspool/react to npm with provenance via OIDC trusted publishing (no
+# token) when a `react-v*` tag is pushed:
+#   cd packages/react && npm version patch --no-git-tag-version
+#   git commit -am "react 0.1.x" && git tag react-vX.Y.Z && git push --follow-tags
+#
+# One-time setup on npmjs.com (required before the first tokenless publish):
+#   npmjs.com → @sightspool/react → Settings → Trusted Publisher → GitHub Actions,
+#   repository `sightspool/sdk`, workflow `release-react.yml` (leave Environment blank).
+#
+# Like the core SDK, we install/build with pnpm but publish with the npm CLI (the
+# canonical OIDC client, >= 11.5.1). The core SDK (@sightspool/sdk) keeps its own `v*`
+# tags + release.yml — `react-v*` never matches `v*`, so the two never collide.
+
+on:
+  push:
+    tags: ["react-v*"]
+
+permissions:
+  contents: read
+  id-token: write # OIDC: lets npm verify this workflow as a trusted publisher (+ provenance)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Build + test the whole workspace (react's build/types need the SDK's .d.ts, which
+      # pnpm builds first via topo order).
+      - run: pnpm -r --include-workspace-root build
+      - run: pnpm -r --include-workspace-root test
+      - run: npm install -g npm@11
+      # Drop the workspace:* dev link so it can't leak into the published manifest (the
+      # published @sightspool/sdk dependency is the real range in peerDependencies). npm
+      # publish doesn't rewrite workspace: protocols the way pnpm publish does.
+      - name: Publish @sightspool/react
+        working-directory: packages/react
+        run: |
+          npm pkg delete devDependencies.@sightspool/sdk
+          npm publish --provenance --access public

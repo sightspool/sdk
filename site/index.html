@@ -180,20 +180,25 @@ useEffect(() =&gt; {
         <code>strategy="afterInteractive"</code> keeps it off the critical path.
       </blockquote>
 
-      <h3>React (bundler install)</h3>
-      <pre><code>import { useEffect } from 'react'
-import Sightspool from '@sightspool/sdk'
+      <h3>React / Next.js — <code>@sightspool/react</code></h3>
+      <p>For React apps, use the official bindings — a declarative provider over the core SDK:</p>
+      <pre><code>npm install @sightspool/react @sightspool/sdk react</code></pre>
+      <pre><code>import { SightspoolProvider } from '@sightspool/react'
 
-export function SightspoolBoot({ userId, account, plan }) {
-  useEffect(() =&gt; { Sightspool.init({ key: import.meta.env.VITE_SIGHTSPOOL_KEY }) }, [])
-  useEffect(() =&gt; { if (userId) Sightspool.identify(userId, { account, plan }) }, [userId, account, plan])
-  return null
-}</code></pre>
-      <blockquote>
-        A first-class <strong><code>@sightspool/react</code></strong> wrapper
-        (<code>&lt;SightspoolProvider&gt;</code> + a <code>useSightspool</code> hook) is planned —
-        <a href="https://github.com/sightspool/sdk/issues/3">issue #3</a>.
-      </blockquote>
+&lt;SightspoolProvider
+  apiKey={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}
+  identity={user &amp;&amp; { userId: user.id, account: user.account, plan: user.plan }}
+&gt;
+  &lt;App /&gt;
+&lt;/SightspoolProvider&gt;</code></pre>
+      <p>
+        It ships a <code>"use client"</code> banner (drops straight into a Next.js App Router
+        <strong>server</strong> layout), re-fires <code>identify</code> whenever
+        <code>identity</code> changes, and takes a reactive <code>consent</code> prop for cookie
+        banners. Full API:
+        <a href="https://www.npmjs.com/package/@sightspool/react">@sightspool/react</a>.
+        <code>@sightspool/sdk</code> and <code>react</code> are peer dependencies.
+      </p>
 
       <h2 id="csp">Content-Security-Policy</h2>
       <p>
