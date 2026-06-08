@@ -7,6 +7,8 @@ export type SightspoolConfig = {
   endpoint?: string;
   /** Show the one-tap boundary ask ("did you do what you came to do?"). Default true. */
   boundaryAsk?: boolean;
+  /** Show human-approved interventions (surveys) served by /api/sdk/serve. Default true. */
+  interventions?: boolean;
   /** Start capturing immediately. Set false to wait for start() after consent. Default true. */
   consent?: boolean;
   /** CSS selectors whose text is masked (replaced with a placeholder) before capture. */

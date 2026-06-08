@@ -15,6 +15,12 @@ import {
   DEFAULT_CAPS,
   type FatigueState,
 } from "./triggers";
+import {
+  buildServeContext,
+  fetchIntervention,
+  submitResponse,
+  getRespondentKey,
+} from "./intervention";
 import { isLocalhost } from "./env";
 
 export type { SightspoolConfig, Identity } from "./types";
@@ -22,6 +28,11 @@ export type { SightspoolConfig, Identity } from "./types";
 const DEFAULT_ENDPOINT = "https://app.sightspool.com";
 const FRICTION_EMIT_COOLDOWN_MS = 30_000;
 const EVENT_DEBOUNCE_MS = 600;
+// Let the page settle before the first serve check (don't race the initial render).
+const SERVE_SETTLE_MS = 2_500;
+// Conservative client cap; the server also de-dups (answered) + targets + bounds by
+// response_target, so this just stops a dismissed survey re-nagging within a session.
+const MAX_INTERVENTIONS_PER_SESSION = 1;
 
 type Controller = {
   config: Required<Pick<SightspoolConfig, "key" | "endpoint" | "boundaryAsk" | "debug">> &
@@ -37,6 +48,11 @@ type Controller = {
   running: boolean;
   /** Environmental kill-switch: on localhost without `captureOnLocalhost`, never start. */
   suppressed: boolean;
+  // --- interventions (slice B serve loop) ---
+  interventionsEnabled: boolean;
+  lastServeRoute: string | null; // re-check serve when the route changes
+  surveyOnScreen: boolean;
+  interventionsShown: number;
 };
 
 function currentHostname(): string {
@@ -117,9 +133,66 @@ async function maybePrompt(c: Controller, trigger: "boundary" | "friction") {
   }
 }
 
+// Ask the serve endpoint whether there's a human-approved survey to show this user
+// here, and if so render it + post the answer. Server-gated (targeting, approval,
+// de-dup, response_target); the client guards are just "don't pester": one on
+// screen at a time, a per-session cap, and the shared prompt cooldown so a survey
+// and the passive ask never stack back-to-back.
+async function maybeServeIntervention(c: Controller) {
+  if (!c.running || !c.interventionsEnabled || c.suppressed) return;
+  if (c.surveyOnScreen) return;
+  if (c.interventionsShown >= MAX_INTERVENTIONS_PER_SESSION) return;
+  const now = Date.now();
+  if (c.fatigue.lastPromptAt !== null && now - c.fatigue.lastPromptAt < DEFAULT_CAPS.cooldownMs)
+    return;
+
+  const respondentKey = getRespondentKey(c.identity, c.sessionRef);
+  const served = await fetchIntervention({
+    endpoint: c.config.endpoint,
+    key: c.config.key,
+    ctx: buildServeContext(c.capture.route(), c.identity),
+    respondentKey,
+    debug: c.config.debug,
+  });
+  if (!served || !c.running) return;
+
+  c.surveyOnScreen = true;
+  c.interventionsShown += 1;
+  c.fatigue.lastPromptAt = Date.now(); // share the cooldown with the passive prompt
+  try {
+    const { showSurvey } = await import("./survey");
+    const result = await showSurvey(served.config);
+    if (!result.dismissed && (result.choice || result.text)) {
+      submitResponse({
+        endpoint: c.config.endpoint,
+        key: c.config.key,
+        interventionId: served.id,
+        response: { choice: result.choice, text: result.text },
+        respondentKey,
+      });
+    }
+  } catch {
+    /* swallow — a render/import failure must not surface in the host */
+  } finally {
+    c.surveyOnScreen = false;
+  }
+}
+
 function onCaptureEvent() {
   const c = ctrl;
   if (!c || !c.running) return;
+
+  // Re-check for a servable intervention when the route changes (SPA navigation).
+  try {
+    const route = c.capture.route();
+    if (route && route !== c.lastServeRoute) {
+      c.lastServeRoute = route;
+      void maybeServeIntervention(c);
+    }
+  } catch {
+    /* swallow */
+  }
+
   if (c.eventTimer !== null) return; // debounce a burst of events into one check
   c.eventTimer = (typeof window !== "undefined" ? window.setTimeout : setTimeout)(() => {
     c.eventTimer = null;
@@ -165,6 +238,20 @@ function startRuntime(c: Controller) {
   } catch {
     /* swallow */
   }
+  // First serve check once the page has settled (route-change checks happen in
+  // onCaptureEvent thereafter).
+  if (c.interventionsEnabled) {
+    c.lastServeRoute = (() => {
+      try {
+        return c.capture.route();
+      } catch {
+        return null;
+      }
+    })();
+    (typeof window !== "undefined" ? window.setTimeout : setTimeout)(() => {
+      void maybeServeIntervention(c);
+    }, SERVE_SETTLE_MS);
+  }
   if (c.config.debug) console.debug("[sightspool] started", c.sessionRef);
 }
 
@@ -200,6 +287,10 @@ export function init(config: SightspoolConfig): void {
       eventTimer: null,
       running: false,
       suppressed: isLocalhost(currentHostname()) && config.captureOnLocalhost !== true,
+      interventionsEnabled: config.interventions !== false,
+      lastServeRoute: null,
+      surveyOnScreen: false,
+      interventionsShown: 0,
     };
     if (config.consent !== false) startRuntime(ctrl);
   } catch (err) {
@@ -308,6 +399,7 @@ try {
         redact: list("data-sightspool-redact"),
         block: list("data-sightspool-block"),
         captureOnLocalhost: el?.hasAttribute("data-sightspool-capture-localhost") || undefined,
+        interventions: el?.hasAttribute("data-sightspool-no-interventions") ? false : undefined,
         debug: el?.hasAttribute("data-sightspool-debug") || undefined,
       });
     }

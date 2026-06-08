@@ -90,6 +90,7 @@ The script tag also reads these optional attributes (the no-build equivalent of 
 | `key` | `string` | — | **required.** Your publishable key (`pk_test_…` / `pk_live_…`), from the Connections → In-product SDK card. Publishable — safe to ship in client JS. See [Keys & environments](#keys--environments). |
 | `endpoint` | `string` | the bundle's origin (script tag) / `https://app.sightspool.com` (npm) | Ingest base URL. The `<script>` install auto-resolves it to wherever `sdk.global.js` was served from (your app), so the key alone is enough; override for a CDN-hosted bundle or dev. |
 | `boundaryAsk` | `boolean` | `true` | Show the one-tap "did you do what you came to do?" ask at session boundaries. |
+| `interventions` | `boolean` | `true` | Show human-approved **surveys** served by your Sightspool workspace (see [Interventions](#interventions-surveys)). Set `false` to capture only. |
 | `consent` | `boolean` | `true` | Start capturing immediately. Set `false` to stay paused until you call `Sightspool.consent(true)` (or `start()`) after obtaining consent. |
 | `redact` | `string[]` | `[]` | CSS selectors whose captured text is **masked** (replaced with `‹redacted›`) before anything leaves the page. The event is still recorded — only its label is masked. |
 | `block` | `string[]` | `[]` | CSS selectors whose events are **dropped entirely** (the hard opt-out). Equivalent to putting `data-sightspool-ignore` on the element. |
@@ -259,6 +260,44 @@ If you pass a custom `endpoint`, use *that* origin in `connect-src`. The beacon 
   Add `'unsafe-inline'` to `style-src` if you want it styled.
 
 ---
+
+## Interventions (surveys)
+
+The SDK is two-way. Besides *capturing*, it can show a **human-approved survey** at the
+moment of friction — the "ask" side of Sightspool. You don't author these in code: your
+team proposes a survey off a proven finding in the app, **a human approves it**, sets who
+sees it (route / account / plan), and the SDK serves it. Nothing reaches a user without
+that approval ("no proof **and** no approval, no act").
+
+It's on by default — the same one or two install lines that capture also serve. When the
+SDK loads (and on each route change) it asks your workspace *"anything to show this user
+here?"*; if there's a matching approved survey, it renders a small card in a shadow root
+(your CSS can't reach it; it leaks no styles), and posts the answer back.
+
+```js
+Sightspool.init({ key: "pk_live_…" });          // serving is on by default
+Sightspool.init({ key: "pk_live_…", interventions: false }); // capture only
+```
+
+```html
+<!-- script-tag install: opt out with one attribute -->
+<script src="https://app.sightspool.com/sdk.global.js"
+        data-sightspool-key="pk_live_…"
+        data-sightspool-no-interventions></script>
+```
+
+**What shows, and how often** — all server-gated, so you stay in control:
+
+- **Targeting** — only to the route / account / plan the approver chose.
+- **De-dup** — a survey a user has answered never reappears (a per-user key is kept
+  locally; it's anonymous unless you've called `identify()`).
+- **Won't pester** — at most one survey on screen, one per session, and it shares a
+  cooldown with the boundary ask so the two never stack back-to-back. The run also stops
+  itself once it hits the approver's response target.
+
+The survey widget is **lazily loaded** — it splits into its own chunk and adds nothing to
+your bundle until a survey is actually served. Today the SDK renders one-tap / short-text
+surveys; richer types (incl. voice micro-research) render as they ship.
 
 ## What it captures
 
