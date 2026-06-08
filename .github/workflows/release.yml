@@ -1,11 +1,20 @@
 name: Release
 
-# Publishes to npm with provenance when a v* tag is pushed:
+# Publishes to npm with provenance via OIDC **trusted publishing** (no token) when a
+# v* tag is pushed:
 #   pnpm version patch|minor|major   # bumps package.json + creates the tag
 #   git push --follow-tags
-# Requires repo secret NPM_TOKEN (a granular npm token with publish rights to
-# @sightspool/*). Once the package exists, this can migrate to tokenless OIDC
-# trusted publishing — see the repo README / docs.
+#
+# One-time setup on npmjs.com (required before the first tokenless publish):
+#   npmjs.com → @sightspool/sdk → Settings → Trusted Publisher → GitHub Actions,
+#   repository `sightspool/sdk`, workflow `release.yml` (leave Environment blank).
+# Once configured, npm authenticates this workflow via OIDC (`id-token: write`) — no
+# NPM_TOKEN secret. We install/build with pnpm but publish with the npm CLI, which is the
+# canonical OIDC trusted-publishing client (requires npm >= 11.5.1; node 22 ships npm 10,
+# so we upgrade it). This keeps the repo on pnpm 9 — no package-manager migration.
+#
+# After verifying a tokenless publish: delete the NPM_TOKEN repo secret and revoke the
+# token on npmjs.com.
 
 on:
   push:
@@ -13,7 +22,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # required for npm provenance attestation
+  id-token: write # OIDC: lets npm verify this workflow as a trusted publisher (+ provenance)
 
 jobs:
   publish:
@@ -30,6 +39,8 @@ jobs:
       - run: pnpm type-check
       - run: pnpm test
       - run: pnpm build
-      - run: pnpm publish --provenance --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Trusted publishing needs npm >= 11.5.1; node 22 ships npm 10.
+      - run: npm install -g npm@11
+      # No NODE_AUTH_TOKEN: npm exchanges the GitHub OIDC token for a short-lived npm
+      # credential (provenance is automatic under trusted publishing; kept explicit).
+      - run: npm publish --provenance --access public
