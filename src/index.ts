@@ -25,7 +25,7 @@ import { isLocalhost } from "./env";
 
 export type { SightspoolConfig, Identity } from "./types";
 
-const DEFAULT_ENDPOINT = "https://app.sightspool.com";
+const DEFAULT_ENDPOINT = "https://www.sightspool.com";
 const FRICTION_EMIT_COOLDOWN_MS = 30_000;
 const EVENT_DEBOUNCE_MS = 600;
 // Let the page settle before the first serve check (don't race the initial render).

@@ -47,7 +47,7 @@ call for their analytics/support tools.
 ```html
 <script
   async
-  src="https://app.sightspool.com/sdk.global.js"
+  src="https://www.sightspool.com/sdk.global.js"
   data-sightspool-key="pk_live_…"
 ></script>
 ```
@@ -70,7 +70,7 @@ The script tag also reads these optional attributes (the no-build equivalent of 
 ```html
 <script
   async
-  src="https://app.sightspool.com/sdk.global.js"
+  src="https://www.sightspool.com/sdk.global.js"
   data-sightspool-key="pk_live_…"
   data-sightspool-block=".billing-panel, [data-private]"
   data-sightspool-redact=".customer-name"
@@ -88,7 +88,7 @@ The script tag also reads these optional attributes (the no-build equivalent of 
 | option | type | default | purpose |
 |---|---|---|---|
 | `key` | `string` | — | **required.** Your publishable key (`pk_test_…` / `pk_live_…`), from the Connections → In-product SDK card. Publishable — safe to ship in client JS. See [Keys & environments](#keys--environments). |
-| `endpoint` | `string` | the bundle's origin (script tag) / `https://app.sightspool.com` (npm) | Ingest base URL. The `<script>` install auto-resolves it to wherever `sdk.global.js` was served from (your app), so the key alone is enough; override for a CDN-hosted bundle or dev. |
+| `endpoint` | `string` | the bundle's origin (script tag) / `https://www.sightspool.com` (npm) | Ingest base URL. The `<script>` install auto-resolves it to wherever `sdk.global.js` was served from (your app), so the key alone is enough; override for a CDN-hosted bundle or dev. |
 | `boundaryAsk` | `boolean` | `true` | Show the one-tap "did you do what you came to do?" ask at session boundaries. |
 | `interventions` | `boolean` | `true` | Show human-approved **surveys** served by your Sightspool workspace (see [Interventions](#interventions-surveys)). Set `false` to capture only. |
 | `consent` | `boolean` | `true` | Start capturing immediately. Set `false` to stay paused until you call `Sightspool.consent(true)` (or `start()`) after obtaining consent. |
@@ -164,7 +164,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <Script
-          src="https://app.sightspool.com/sdk.global.js"
+          src="https://www.sightspool.com/sdk.global.js"
           data-sightspool-key={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}
           strategy="afterInteractive"
         />
@@ -237,15 +237,15 @@ from the app it ingests to), so it's one host in two directives:
 **Script-tag install**
 
 ```
-script-src  https://app.sightspool.com;
-connect-src https://app.sightspool.com;
+script-src  https://www.sightspool.com;
+connect-src https://www.sightspool.com;
 ```
 
 **npm / bundler install** — the SDK is bundled into your own first-party JS, so no
 `script-src` host is needed; only the ingest origin:
 
 ```
-connect-src https://app.sightspool.com;
+connect-src https://www.sightspool.com;
 ```
 
 If you pass a custom `endpoint`, use *that* origin in `connect-src`. The beacon goes via
@@ -281,7 +281,7 @@ Sightspool.init({ key: "pk_live_…", interventions: false }); // capture only
 
 ```html
 <!-- script-tag install: opt out with one attribute -->
-<script src="https://app.sightspool.com/sdk.global.js"
+<script src="https://www.sightspool.com/sdk.global.js"
         data-sightspool-key="pk_live_…"
         data-sightspool-no-interventions></script>
 ```
