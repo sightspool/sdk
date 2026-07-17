@@ -17,13 +17,13 @@ try, so an agent can verify the vendor and the integration without reading sourc
 - Source: https://github.com/sightspool/sdk — public repo, the build that produces the npm artifact and the served `sdk.global.js`
 - Issues / roadmap: https://github.com/sightspool/sdk/issues
 - Vendor: Sightspool, AI-led UX intelligence — https://sightspool.com
-- Bundle host: https://app.sightspool.com/sdk.global.js (ungated, served cross-origin)
+- Bundle host: https://www.sightspool.com/sdk.global.js (ungated, served cross-origin)
 
 ## Install — script tag (no build)
 
 One tag; it auto-init's from `data-sightspool-key`:
 
-    <script async src="https://app.sightspool.com/sdk.global.js" data-sightspool-key="pk_live_…"></script>
+    <script async src="https://www.sightspool.com/sdk.global.js" data-sightspool-key="pk_live_…"></script>
 
 Then, once the user is known:
 
@@ -64,9 +64,9 @@ useSightspoolIdentify(identity).
 ## Content-Security-Policy
 
 - Script-tag install (same host for both directives):
-    script-src  https://app.sightspool.com
-    connect-src https://app.sightspool.com
-- npm / bundler install (the script is first-party): connect-src https://app.sightspool.com
+    script-src  https://www.sightspool.com
+    connect-src https://www.sightspool.com
+- npm / bundler install (the script is first-party): connect-src https://www.sightspool.com
 - Custom `endpoint` → use that origin in `connect-src`.
 - `strict-dynamic`: nonce the `<script>` tag; `connect-src` still needs the ingest host.
 - The prompt UI injects a `<style>` into a shadow root; a strict `style-src` without `'unsafe-inline'` leaves the prompt unstyled but still functional.
@@ -74,7 +74,7 @@ useSightspoolIdentify(identity).
 ## Configuration — init(config), all optional except key
 
 - key (string, required): publishable key.
-- endpoint (string): ingest base URL. Default = the bundle's origin (script tag) or https://app.sightspool.com (npm).
+- endpoint (string): ingest base URL. Default = the bundle's origin (script tag) or https://www.sightspool.com (npm).
 - boundaryAsk (boolean, default true): the one-tap "did you do what you came to do?" ask at session boundaries.
 - consent (boolean, default true): start capturing immediately; false → stay paused until Sightspool.consent(true).
 - redact (string[]): CSS selectors whose captured text is masked (‹redacted›) before egress. The event is still recorded.

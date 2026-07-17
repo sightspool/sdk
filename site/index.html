@@ -101,7 +101,7 @@
       <p>One tag — it auto-<code>init</code>s from its <code>data-sightspool-key</code>:</p>
       <pre><code>&lt;script
   async
-  src="https://app.sightspool.com/sdk.global.js"
+  src="https://www.sightspool.com/sdk.global.js"
   data-sightspool-key="pk_live_…"
 &gt;&lt;/script&gt;</code></pre>
       <p>Then identify the user once known (guard with <code>&amp;&amp;</code> until the script has loaded):</p>
@@ -161,7 +161,7 @@ export default function RootLayout({ children }) {
       &lt;body&gt;
         {children}
         &lt;Script
-          src="https://app.sightspool.com/sdk.global.js"
+          src="https://www.sightspool.com/sdk.global.js"
           data-sightspool-key={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}
           strategy="afterInteractive"
         /&gt;
@@ -207,10 +207,10 @@ useEffect(() =&gt; {
         (the bundle is served from the app it ingests to), so it's one host in two directives:
       </p>
       <p><strong>Script-tag install</strong></p>
-      <pre><code>script-src  https://app.sightspool.com;
-connect-src https://app.sightspool.com;</code></pre>
+      <pre><code>script-src  https://www.sightspool.com;
+connect-src https://www.sightspool.com;</code></pre>
       <p><strong>npm / bundler install</strong> — the SDK is bundled into your own first-party JS, so no <code>script-src</code> host is needed; only the ingest origin:</p>
-      <pre><code>connect-src https://app.sightspool.com;</code></pre>
+      <pre><code>connect-src https://www.sightspool.com;</code></pre>
       <p>
         If you pass a custom <code>endpoint</code>, use that origin in <code>connect-src</code>.
         The beacon goes via <code>navigator.sendBeacon</code> with a <code>fetch(keepalive)</code>
@@ -238,7 +238,7 @@ connect-src https://app.sightspool.com;</code></pre>
         <thead><tr><th>option</th><th>default</th><th>purpose</th></tr></thead>
         <tbody>
           <tr><td><code>key</code></td><td>—</td><td><strong>required.</strong> Publishable key (<code>pk_test_…</code> / <code>pk_live_…</code>).</td></tr>
-          <tr><td><code>endpoint</code></td><td>bundle origin / <code>app.sightspool.com</code></td><td>Ingest base URL. The <code>&lt;script&gt;</code> install auto-resolves it to where <code>sdk.global.js</code> was served from.</td></tr>
+          <tr><td><code>endpoint</code></td><td>bundle origin / <code>www.sightspool.com</code></td><td>Ingest base URL. The <code>&lt;script&gt;</code> install auto-resolves it to where <code>sdk.global.js</code> was served from.</td></tr>
           <tr><td><code>boundaryAsk</code></td><td><code>true</code></td><td>Show the one-tap "did you do what you came to do?" ask at session boundaries.</td></tr>
           <tr><td><code>consent</code></td><td><code>true</code></td><td>Start capturing immediately. <code>false</code> → stay paused until <code>Sightspool.consent(true)</code>.</td></tr>
           <tr><td><code>redact</code></td><td><code>[]</code></td><td>CSS selectors whose captured text is <strong>masked</strong> (<code>‹redacted›</code>) before egress. The event is still recorded.</td></tr>
