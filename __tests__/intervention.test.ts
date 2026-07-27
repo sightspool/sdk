@@ -76,3 +76,54 @@ test("pickRespondentKey prefers userId, then persisted anon, then session", () =
   assert.equal(pickRespondentKey(undefined, "anon-x", "sess-1"), "anon-x");
   assert.equal(pickRespondentKey("  ", null, "sess-1"), "sess-1");
 });
+
+// ---- demand_probe (the honest painted door — client half) ------------------
+
+test("normalizeServed accepts a well-formed demand_probe", () => {
+  const p = normalizeServed({
+    id: "p1",
+    type: "demand_probe",
+    config: {
+      label: "Want exports to CSV?",
+      disclosure: "This doesn't exist yet — your click was counted as a vote.",
+    },
+  });
+  assert.deepEqual(p, {
+    id: "p1",
+    type: "demand_probe",
+    config: {
+      label: "Want exports to CSV?",
+      disclosure: "This doesn't exist yet — your click was counted as a vote.",
+    },
+  });
+});
+
+test("a probe without the disclosure is DROPPED — never an undisclosed fake door", () => {
+  assert.equal(
+    normalizeServed({
+      id: "p1",
+      type: "demand_probe",
+      config: { label: "Want exports?" },
+    }),
+    null,
+  );
+  assert.equal(
+    normalizeServed({
+      id: "p1",
+      type: "demand_probe",
+      config: { label: "Want exports?", disclosure: "   " },
+    }),
+    null,
+  );
+});
+
+test("a probe without a label is dropped too", () => {
+  assert.equal(
+    normalizeServed({
+      id: "p1",
+      type: "demand_probe",
+      config: { disclosure: "This doesn't exist yet." },
+    }),
+    null,
+  );
+});

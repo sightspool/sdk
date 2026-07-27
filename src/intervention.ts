@@ -9,20 +9,19 @@
 
 import type { Identity } from "./types";
 import type { SurveyConfig } from "./survey";
+import type { ProbeConfig } from "./probe";
 
 export type ServeContext = { route?: string; account?: string; plan?: string };
 
-export type ServedIntervention = {
-  id: string;
-  type: string; // 'survey' renders today; others ignored until their widget ships
-  config: SurveyConfig;
-};
+export type ServedIntervention =
+  | { id: string; type: "survey"; config: SurveyConfig }
+  | { id: string; type: "demand_probe"; config: ProbeConfig };
 
 export type InterventionAnswer = { choice?: string; text?: string };
 
 // Types the SDK can actually render. Mirrors the server's RENDERABLE_TYPES; if the
 // server ever serves an un-renderable type we drop it rather than show a blank.
-const RENDERABLE = new Set(["survey"]);
+const RENDERABLE = new Set(["survey", "demand_probe"]);
 
 function str(v: unknown, max: number): string | undefined {
   if (typeof v !== "string") return undefined;
@@ -47,8 +46,8 @@ export function buildServeContext(
 }
 
 /** Validate + normalise what /serve returned — never trust the wire blindly. Returns
- *  a clean ServedIntervention or null (unknown shape / un-renderable type / no
- *  question). */
+ *  a clean ServedIntervention or null (unknown shape / un-renderable type /
+ *  incomplete config). */
 export function normalizeServed(raw: unknown): ServedIntervention | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -58,6 +57,19 @@ export function normalizeServed(raw: unknown): ServedIntervention | null {
 
   const cfg =
     r.config && typeof r.config === "object" ? (r.config as Record<string, unknown>) : {};
+
+  if (type === "demand_probe") {
+    // The honest painted door: label = the feature as the user would want it;
+    // disclosure = the fixed "this doesn't exist yet" copy the server always
+    // injects. If the disclosure is missing we DROP the probe rather than
+    // render an undisclosed fake door — the client-side belt to the server's
+    // braces.
+    const label = str(cfg.label, 200);
+    const disclosure = str(cfg.disclosure, 300);
+    if (!label || !disclosure) return null;
+    return { id, type, config: { label, disclosure } };
+  }
+
   const question = str(cfg.question, 500);
   if (!question) return null;
 
@@ -73,7 +85,7 @@ export function normalizeServed(raw: unknown): ServedIntervention | null {
     ...(options && options.length ? { options } : {}),
     allow_text: cfg.allow_text === true,
   };
-  return { id, type, config };
+  return { id, type: "survey", config };
 }
 
 /** Stable id for serve-time de-dup (so a tapped survey doesn't reappear). The

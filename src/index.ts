@@ -160,16 +160,32 @@ async function maybeServeIntervention(c: Controller) {
   c.interventionsShown += 1;
   c.fatigue.lastPromptAt = Date.now(); // share the cooldown with the passive prompt
   try {
-    const { showSurvey } = await import("./survey");
-    const result = await showSurvey(served.config);
-    if (!result.dismissed && (result.choice || result.text)) {
-      submitResponse({
-        endpoint: c.config.endpoint,
-        key: c.config.key,
-        interventionId: served.id,
-        response: { choice: result.choice, text: result.text },
-        respondentKey,
-      });
+    if (served.type === "demand_probe") {
+      // The honest painted door: a vote is recorded as choice "vote"; the
+      // widget always shows the server's fixed disclosure after the click.
+      const { showProbe } = await import("./probe");
+      const result = await showProbe(served.config);
+      if (result.voted) {
+        submitResponse({
+          endpoint: c.config.endpoint,
+          key: c.config.key,
+          interventionId: served.id,
+          response: { choice: "vote" },
+          respondentKey,
+        });
+      }
+    } else {
+      const { showSurvey } = await import("./survey");
+      const result = await showSurvey(served.config);
+      if (!result.dismissed && (result.choice || result.text)) {
+        submitResponse({
+          endpoint: c.config.endpoint,
+          key: c.config.key,
+          interventionId: served.id,
+          response: { choice: result.choice, text: result.text },
+          respondentKey,
+        });
+      }
     }
   } catch {
     /* swallow — a render/import failure must not surface in the host */
