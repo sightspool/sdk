@@ -63,11 +63,14 @@ export function normalizeServed(raw: unknown): ServedIntervention | null {
     // disclosure = the fixed "this doesn't exist yet" copy the server always
     // injects. If the disclosure is missing we DROP the probe rather than
     // render an undisclosed fake door — the client-side belt to the server's
-    // braces.
+    // braces. `slot` (optional inline placement) is re-validated as a bare
+    // token so it can never smuggle a selector.
     const label = str(cfg.label, 200);
     const disclosure = str(cfg.disclosure, 300);
     if (!label || !disclosure) return null;
-    return { id, type, config: { label, disclosure } };
+    const rawSlot = str(cfg.slot, 64);
+    const slot = rawSlot && /^[a-z0-9][a-z0-9_-]*$/i.test(rawSlot) ? rawSlot : undefined;
+    return { id, type, config: { label, disclosure, ...(slot ? { slot } : {}) } };
   }
 
   const question = str(cfg.question, 500);

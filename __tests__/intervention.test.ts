@@ -127,3 +127,21 @@ test("a probe without a label is dropped too", () => {
     null,
   );
 });
+
+test("a probe slot passes through only as a bare token — never a selector", () => {
+  const ok = normalizeServed({
+    id: "p1",
+    type: "demand_probe",
+    config: { label: "L", disclosure: "D", slot: "exports-csv" },
+  });
+  assert.equal(ok?.type === "demand_probe" && ok.config.slot, "exports-csv");
+
+  for (const bad of ["#app .btn", "a b", "-x", ""]) {
+    const r = normalizeServed({
+      id: "p1",
+      type: "demand_probe",
+      config: { label: "L", disclosure: "D", slot: bad },
+    });
+    assert.ok(r && r.type === "demand_probe" && !("slot" in r.config), `kept: ${bad}`);
+  }
+});

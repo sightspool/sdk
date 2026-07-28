@@ -156,6 +156,8 @@ async function maybeServeIntervention(c: Controller) {
   });
   if (!served || !c.running) return;
 
+  const prevShown = c.interventionsShown;
+  const prevPromptAt = c.fatigue.lastPromptAt;
   c.surveyOnScreen = true;
   c.interventionsShown += 1;
   c.fatigue.lastPromptAt = Date.now(); // share the cooldown with the passive prompt
@@ -165,7 +167,13 @@ async function maybeServeIntervention(c: Controller) {
       // widget always shows the server's fixed disclosure after the click.
       const { showProbe } = await import("./probe");
       const result = await showProbe(served.config);
-      if (result.voted) {
+      if (!result.mounted) {
+        // A slot probe whose anchor isn't on this page rendered NOTHING —
+        // give the session its fatigue budget back so a real prompt can
+        // still show later (and the probe can retry on another route).
+        c.interventionsShown = prevShown;
+        c.fatigue.lastPromptAt = prevPromptAt;
+      } else if (result.voted) {
         submitResponse({
           endpoint: c.config.endpoint,
           key: c.config.key,
