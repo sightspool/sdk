@@ -50,7 +50,7 @@
   "scripts": {
     "build": "tsup",
     "type-check": "tsc --noEmit",
-    "test": "node --test __tests__/*.test.ts",
+    "test": "tsc --noEmit && node --test __tests__/*.test.ts",
     "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
