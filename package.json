@@ -1,6 +1,6 @@
 {
   "name": "@sightspool/sdk",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Sightspool in-product capture SDK — captures user intent, effort, and account at the moment of friction.",
   "type": "module",
   "main": "./dist/index.cjs",
