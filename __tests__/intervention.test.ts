@@ -64,9 +64,12 @@ test("normalizeServed sanitises options (trim, de-blank, cap 6) and defaults all
     type: "survey",
     config: { question: "Q", options: [" A ", "", "B", "C", "D", "E", "F", "G"] },
   });
-  assert.ok(s);
-  assert.deepEqual(s!.config.options, ["A", "B", "C", "D", "E", "F"]);
-  assert.equal(s!.config.allow_text, false);
+  // ServedIntervention is a discriminated union — narrow before reading a
+  // survey-only field, or the type-check gate fails while node --test (which
+  // strips types) still passes.
+  assert.ok(s && s.type === "survey");
+  assert.deepEqual(s.config.options, ["A", "B", "C", "D", "E", "F"]);
+  assert.equal(s.config.allow_text, false);
 });
 
 // ---- pickRespondentKey ------------------------------------------------------
