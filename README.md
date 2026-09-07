@@ -5,12 +5,12 @@ owner-approved research during User Hours, then opens Sightspool for consent and
 the interview. It does not capture page content, behavior, form values or analytics.
 
 This is the **0.4.0 research API**, a deliberate change from the old capture SDK.
-The source is prepared locally; publish 0.4.0 before using the npm command below.
+Install the exact version below and review upgrades before deploying them.
 Old capture code and documentation are archived in `docs/legacy`.
 
-Read the [data and security guide](https://sdk.sightspool.com/trust.html),
+Read the [data and security guide](https://www.sightspool.com/sdk/data-security),
 inspect the [public source](https://github.com/sightspool/sdk), or try the
-[isolated SDK demo](https://sdk.sightspool.com/demo.html).
+[isolated SDK demo](https://www.sightspool.com/sdk/demo).
 
 ## npm
 

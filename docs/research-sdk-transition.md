@@ -83,3 +83,13 @@ snapshots and release directories are left alone. Retain earlier released artifa
 directories when assembling any future Pages deployment. Do not use a host-wide redirect.
 The default standalone HTML remains a fallback until that coordinated release; then
 update README/llms canonical links to the main website at the same release gate.
+
+## npm 0.4.0 release preparation — 7 September 2026
+
+The owner authorized publication through release.yml. README/llms now link the
+main website and use version-specific installation instructions. Independent-audit
+and infrastructure limitations remain. The browser artifacts previously served
+from source 83f3b2f (main website) and 17cd8c9 (SDK Pages) are retained under
+site/releases, so package upgrades preserve their immutable URLs. Before each
+future release, retain the currently published artifact directory in this archive.
+Only a successful npm registry/provenance check establishes publication.

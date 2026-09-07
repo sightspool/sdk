@@ -25,7 +25,7 @@
   "sideEffects": false,
   "license": "Apache-2.0",
   "author": "Sightspool",
-  "homepage": "https://github.com/sightspool/sdk#readme",
+  "homepage": "https://www.sightspool.com/sdk",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sightspool/sdk.git"
