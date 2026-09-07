@@ -40,7 +40,7 @@ async function check(r: Runtime) {
   if (!r.button) status(r, "checking");
   try {
     const response = await fetch(r.endpoint + "/widget-offer", {
-      method: "POST", credentials: "omit", cache: "no-store",
+      method: "POST", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ operation: "offer", key: r.key, device: r.device }),
       signal: request.signal,

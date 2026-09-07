@@ -1,56 +1,10 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sightspool research SDK</title><style>
-      :root {
-        --fg: #18181b;
-        --muted: #52525b;
-        --faint: #71717a;
-        --line: #e4e4e7;
-        --bg: #ffffff;
-        --code-bg: #f4f4f5;
-        --accent: #18181b;
-        --max: 760px;
-      }
-      * { box-sizing: border-box; }
-      html { -webkit-text-size-adjust: 100%; }
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        color: var(--fg);
-        background: var(--bg);
-        line-height: 1.6;
-        font-size: 16px;
-      }
-      .wrap { max-width: var(--max); margin: 0 auto; padding: 48px 20px 96px; }
-      header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 8px; }
-      h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
-      h2 { font-size: 22px; margin: 44px 0 12px; letter-spacing: -0.01em; }
-      h3 { font-size: 17px; margin: 28px 0 8px; }
-      p { margin: 12px 0; }
-      .lede { font-size: 18px; color: var(--muted); }
-      .status { font-size: 14px; color: var(--faint); margin-top: 14px; }
-      a { color: var(--accent); text-underline-offset: 2px; }
-      nav.links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 16px 0 0; font-size: 14px; }
-      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em;
-        background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
-      pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
-        padding: 14px 16px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
-      pre code { background: none; padding: 0; font-size: inherit; }
-      table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14.5px; }
-      th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-      th { font-weight: 600; }
-      td code { white-space: nowrap; }
-      blockquote { margin: 16px 0; padding: 10px 16px; border-left: 3px solid var(--line);
-        color: var(--muted); background: #fafafa; border-radius: 0 8px 8px 0; }
-      .toc { font-size: 14px; color: var(--muted); margin: 24px 0 0; }
-      .toc a { margin-right: 14px; white-space: nowrap; }
-      footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line);
-        font-size: 14px; color: var(--faint); }
-      hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
-    </style></head><body><main class="wrap"><header><h1>@sightspool/sdk</h1></header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sightspool research SDK</title><link rel="stylesheet" href="styles.css"></head><body><main class="wrap"><nav aria-label="SDK documentation"><a href="index.html">SDK guide</a><a href="trust.html">Data &amp; security</a><a href="demo.html">Try the SDK</a><a href="https://github.com/sightspool/sdk">GitHub</a></nav><header><h1>@sightspool/sdk</h1></header>
 <p>Embed Sightspool research in your product. The SDK invites website visitors and signed-in users into owner-approved research during User Hours, then opens Sightspool for consent and the interview. It does not capture page content, behavior, form values or analytics.</p>
 <p>This is the <strong>0.4.0 research API</strong>, a deliberate change from the old capture SDK. The source is prepared locally; publish 0.4.0 before using the npm command below. Old capture code and documentation are archived in <code>docs/legacy</code>.</p>
+<p>Read the <a href="https://sdk.sightspool.com/trust.html">data and security guide</a>, inspect the <a href="https://github.com/sightspool/sdk">public source</a>, or try the <a href="https://sdk.sightspool.com/demo.html">isolated SDK demo</a>.</p>
 <h2>npm</h2>
-<pre><code>npm install @sightspool/sdk@^0.4.0</code></pre>
+<pre><code>npm install --save-exact @sightspool/sdk@0.4.0</code></pre>
 <pre><code>import Sightspool from &#x27;@sightspool/sdk&#x27;
 
 Sightspool.init({ key: &#x27;YOUR_GO_LIVE_WIDGET_UUID&#x27;, audience: &#x27;all_visitors&#x27; })
@@ -106,9 +60,12 @@ export function Research({ userId = null }: { userId?: string | null }) {
 }</code></pre>
 <p>Optional <code>@sightspool/react</code> 0.2.0 provides <code>SightspoolProvider</code> and research hooks. It requires SDK 0.4.x; see <code>packages/react/README.md</code>. Use one instance per document.</p>
 <h2>Privacy and verification</h2>
-<p>The offer request contains only the public workspace key, a random per-workspace browser-session device token, and the operation name. No user ID, traits, auth secrets, DOM text or page URL is included. Requests use <code>credentials: &#x27;omit&#x27;</code>. No microphone or recording starts on initialization or launcher display.</p>
+<p>The offer request contains only the public workspace key, a random per-workspace browser-session device token, and the operation name. No user ID, traits, auth secrets, DOM text or page URL is included. Requests use <code>credentials: &#x27;omit&#x27;</code>. Offer requests explicitly suppress the Referer header; Origin and ordinary network metadata still reach the service. No microphone or recording starts on initialization or launcher display.</p>
 <p>Polling occurs at most once per 15-second interval while visible and eligible for the configured audience, plus explicit identity/resume/visibility changes. Only one request is in flight; requests time out after 10 seconds. Identity changes, pause, hidden tabs and destruction invalidate stale responses. Logout removes signed-in-only invitations; all-visitors mode refreshes as a visitor.</p>
 <p>A connection receipt proves that the SDK contacted the configured server. It does not certify your app&#x27;s complete login/logout flow or a successful interview. Test anonymous visits, login, navigation, logout, slow loading and unmounting in both modes. Use Go live for server connection checks. A closed User Hours window can connect without an invitation. Do not fabricate approval or weaken an origin/CSP policy to make it show.</p>
+<h2>Verified script releases</h2>
+<p>Go live generates a versioned, content-addressed script URL with SHA-384 integrity, <code>crossorigin=&quot;anonymous&quot;</code> and <code>referrerpolicy=&quot;no-referrer&quot;</code>. Use those values together. The unversioned script examples above are a convenience URL whose contents can change. To pin a reviewed release, use Go live or the manifest linked from the data and security guide.</p>
+<p>For self-hosting, copy the reviewed bundle and preserve its integrity value. Set <code>data-sightspool-endpoint</code> to the workspace Sightspool origin explicitly, because script auto-init otherwise defaults to the bundle host. Keep your own CSP and nonce requirements; allow only the required script host and Sightspool connection origin.</p>
 <h2>Maintainers</h2>
 <pre><code>pnpm install --frozen-lockfile
 pnpm -r --include-workspace-root build

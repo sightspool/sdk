@@ -5,13 +5,13 @@ import re
 
 root = Path(__file__).resolve().parent.parent
 page = root / 'site/index.html'
-old = page.read_text()
-style = old[old.index('<style>'):old.index('</style>') + 8]
+style = '<link rel="stylesheet" href="styles.css">'
 
 def inline(value):
     value = html.escape(value)
     value = re.sub(r'`([^`]+)`', r'<code>\1</code>', value)
     value = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', value)
+    value = re.sub(r'\[([^]]+)\]\((https://[^ )]+)\)', r'<a href="\2">\1</a>', value)
     return value
 
 lines = (root / 'README.md').read_text().splitlines()
@@ -48,4 +48,4 @@ while i < len(lines):
             i += 1; paragraph.append(lines[i])
         body.append('<p>' + inline(' '.join(paragraph)) + '</p>')
     i += 1
-page.write_text('<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sightspool research SDK</title>' + style + '</head><body><main class="wrap">' + '\n'.join(body) + '</main></body></html>\n')
+page.write_text('<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sightspool research SDK</title>' + style + '</head><body><main class="wrap"><nav aria-label="SDK documentation"><a href="index.html">SDK guide</a><a href="trust.html">Data &amp; security</a><a href="demo.html">Try the SDK</a><a href="https://github.com/sightspool/sdk">GitHub</a></nav>' + '\n'.join(body) + '</main></body></html>\n')

@@ -8,10 +8,14 @@ This is the **0.4.0 research API**, a deliberate change from the old capture SDK
 The source is prepared locally; publish 0.4.0 before using the npm command below.
 Old capture code and documentation are archived in `docs/legacy`.
 
+Read the [data and security guide](https://sdk.sightspool.com/trust.html),
+inspect the [public source](https://github.com/sightspool/sdk), or try the
+[isolated SDK demo](https://sdk.sightspool.com/demo.html).
+
 ## npm
 
 ```sh
-npm install @sightspool/sdk@^0.4.0
+npm install --save-exact @sightspool/sdk@0.4.0
 ```
 
 ```ts
@@ -117,6 +121,7 @@ It requires SDK 0.4.x; see `packages/react/README.md`. Use one instance per docu
 The offer request contains only the public workspace key, a random per-workspace
 browser-session device token, and the operation name. No user ID, traits, auth
 secrets, DOM text or page URL is included. Requests use `credentials: 'omit'`.
+Offer requests explicitly suppress the Referer header; Origin and ordinary network metadata still reach the service.
 No microphone or recording starts on initialization or launcher display.
 
 Polling occurs at most once per 15-second interval while visible and eligible for the configured audience,
@@ -129,6 +134,18 @@ not certify your app's complete login/logout flow or a successful interview. Tes
 anonymous visits, login, navigation, logout, slow loading and unmounting in both modes. Use Go live
 for server connection checks. A closed User Hours window can connect without an
 invitation. Do not fabricate approval or weaken an origin/CSP policy to make it show.
+
+## Verified script releases
+
+Go live generates a versioned, content-addressed script URL with SHA-384 integrity,
+`crossorigin="anonymous"` and `referrerpolicy="no-referrer"`. Use those values together.
+The unversioned script examples above are a convenience URL whose contents can change.
+To pin a reviewed release, use Go live or the manifest linked from the data and security guide.
+
+For self-hosting, copy the reviewed bundle and preserve its integrity value. Set
+`data-sightspool-endpoint` to the workspace Sightspool origin explicitly, because
+script auto-init otherwise defaults to the bundle host. Keep your own CSP and nonce
+requirements; allow only the required script host and Sightspool connection origin.
 
 ## Maintainers
 

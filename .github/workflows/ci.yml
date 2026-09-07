@@ -23,3 +23,5 @@ jobs:
       - run: pnpm -r --include-workspace-root build
       - run: pnpm -r --include-workspace-root type-check
       - run: pnpm -r --include-workspace-root test
+      - run: pnpm test:release
+      - run: pnpm build:site

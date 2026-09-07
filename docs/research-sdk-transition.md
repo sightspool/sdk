@@ -34,3 +34,31 @@ may pin a locally packed tarball for reproducible pre-release verification. Publ
 the SDK and React packages only after their independent release gates, then move
 the app from the tarball to the published version before the hosted release.
 No package publication or deployment is authorized by this implementation.
+
+## Trust and release verification
+
+The existing documentation domain is sdk.sightspool.com (site/CNAME, GitHub Pages).
+Its published capture-era guide must be replaced as part of the authorized research
+release. Keep the new guide, trust.html and demo.html together; do not present an
+unpublished research build as an independently audited release.
+
+Build generates dist/release.json, source.json, bundle digests and measured sizes.
+The release artifact ID binds package version, bundle hash, source snapshot hash,
+source commit and dirty state. Script paths use releases/VERSION/ARTIFACT_ID so a
+source or metadata change cannot silently replace a reviewed artifact. Verify with
+pnpm test:release; a tag release additionally rejects dirty source or mismatched tags.
+The npm publish step uses the already verified build (--ignore-scripts) with OIDC
+provenance. The existing npm trusted publisher configuration must be checked at
+release time; local checks do not prove that service-side configuration.
+
+pnpm build:site stages .site-build for local review and GitHub Pages. The app mirrors
+the same packaged site and release files under /sdk for local review; the canonical
+public documentation remains sdk.sightspool.com. Before subsequent public releases,
+retain previous published release directories in site/releases (or an immutable
+artifact store), verify those URLs still resolve, and keep old app-hosted artifacts
+available too. Current staging contains the new unpublished release only; it does
+not establish a historical CDN retention guarantee.
+
+An independent review brief is in docs/security-review-brief.md. Regions, provider
+logs/backups and full backend data handling need deployment-specific verification;
+they are visibly separated from source-proven SDK behavior in the public guide.

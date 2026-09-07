@@ -64,6 +64,7 @@ test("research is idle before sign-in and sends no user identity, page data or c
     assert.deepEqual(Object.keys(body).sort(), ["device", "key", "operation"]);
     assert.match(body.device, /^ss_fcd_[A-Za-z0-9_-]{43}$/);
     assert.equal(env.requests[0].input.credentials, "omit");
+    assert.equal(env.requests[0].input.referrerPolicy, "no-referrer");
     assert.equal(JSON.stringify([...env.storage]).includes("private-user"), false);
     await env.respond(0, { available: false, offer: null });
     assert.equal(sdk.getStatus(), "unavailable");

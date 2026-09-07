@@ -6,3 +6,5 @@ dist/
 
 # Generated at Pages deploy time (canonical llms.txt is at the repo root).
 site/llms.txt
+
+.site-build/

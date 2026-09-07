@@ -1,0 +1,69 @@
+
+      :root {
+        --fg: #18181b;
+        --muted: #52525b;
+        --faint: #71717a;
+        --line: #e4e4e7;
+        --bg: #ffffff;
+        --code-bg: #f4f4f5;
+        --accent: #18181b;
+        --max: 760px;
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+        line-height: 1.6;
+        font-size: 16px;
+      }
+      .wrap { max-width: var(--max); margin: 0 auto; padding: 48px 20px 96px; }
+      header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 8px; }
+      h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
+      h2 { font-size: 22px; margin: 44px 0 12px; letter-spacing: -0.01em; }
+      h3 { font-size: 17px; margin: 28px 0 8px; }
+      p { margin: 12px 0; }
+      .lede { font-size: 18px; color: var(--muted); }
+      .status { font-size: 14px; color: var(--faint); margin-top: 14px; }
+      a { color: var(--accent); text-underline-offset: 2px; }
+      nav.links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 16px 0 0; font-size: 14px; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em;
+        background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+      pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+        padding: 14px 16px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+      pre code { background: none; padding: 0; font-size: inherit; }
+      table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14.5px; }
+      th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+      th { font-weight: 600; }
+      td code { white-space: nowrap; }
+      blockquote { margin: 16px 0; padding: 10px 16px; border-left: 3px solid var(--line);
+        color: var(--muted); background: #fafafa; border-radius: 0 8px 8px 0; }
+      .toc { font-size: 14px; color: var(--muted); margin: 24px 0 0; }
+      .toc a { margin-right: 14px; white-space: nowrap; }
+      footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line);
+        font-size: 14px; color: var(--faint); }
+      hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
+    
+:root { --accent:#75415f; --max:920px; --bg:#fcfafb; --code-bg:#f4eff2; }
+html { scroll-behavior:smooth; }
+.wrap { padding-top:32px; }
+h1 { font-size:clamp(32px,5vw,48px); line-height:1.12; margin:24px 0 18px; }
+h2 { scroll-margin-top:20px; }
+pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+a:focus-visible,button:focus-visible,summary:focus-visible { outline:3px solid #75415f; outline-offset:4px; }
+nav { display:flex;flex-wrap:wrap;gap:10px 24px; padding-bottom:18px; border-bottom:1px solid var(--line); }
+.status,.note { padding:16px 20px; background:#f3ebf0; border:1px solid #ded0d9; border-radius:12px; color:#56344a; }
+.cards { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0; }
+.card { padding:20px;border:1px solid var(--line);border-radius:14px;background:white; }
+.card strong { display:block; margin-bottom:8px; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+th,td { text-align:left;padding:14px 12px;vertical-align:top;border-bottom:1px solid var(--line); }
+button,.button { background:var(--accent);color:white;border:0;border-radius:8px;padding:11px 16px;cursor:pointer;font:inherit;display:inline-block;text-decoration:none; }
+button.secondary { color:var(--accent);background:#eee4eb; }
+.controls { display:flex;flex-wrap:wrap;gap:10px;margin:20px 0; }
+.muted {color:var(--muted);} .hash {word-break:break-all;font-size:13px;}
+footer {margin-top:56px;padding-top:24px;border-top:1px solid var(--line);font-size:14px;}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto;}}

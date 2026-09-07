@@ -17,7 +17,10 @@
     "dist",
     "README.md",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    "site",
+    "SECURITY.md",
+    "CHANGELOG.md"
   ],
   "sideEffects": false,
   "license": "Apache-2.0",
@@ -45,10 +48,12 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/build-release.mjs",
     "type-check": "tsc --noEmit",
     "test": "tsc --noEmit && node --test __tests__/*.test.ts",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build",
+    "test:release": "node scripts/verify-release.mjs && node --test scripts/release.test.mjs",
+    "build:site": "node scripts/stage-site.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.10.4",
