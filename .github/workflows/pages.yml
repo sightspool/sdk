@@ -2,9 +2,9 @@ name: Docs site
 
 # Deploys the static docs site in `site/` to GitHub Pages. One-time setup:
 #   repo Settings → Pages → Source = "GitHub Actions".
-# Served at https://sightspool.github.io/sdk/ (a custom domain can be set later in
-# Settings → Pages). The canonical llms.txt lives at the repo root and is copied into
-# the artifact so it's served at /llms.txt alongside the site.
+# sdk.sightspool.com is a compatibility host. Redirect the three documentation
+# pages to the main website; retain release archives and machine-readable files.
+# llms.txt remains available at the compatibility host.
 
 on:
   push:
@@ -45,7 +45,8 @@ jobs:
       - run: pnpm build
       - run: pnpm test
       - run: pnpm test:release
-      - run: pnpm build:site
+      - run: node --test scripts/docs-redirects.test.mjs
+      - run: pnpm build:site --redirect-docs
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

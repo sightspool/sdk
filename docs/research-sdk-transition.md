@@ -93,3 +93,17 @@ from source 83f3b2f (main website) and 17cd8c9 (SDK Pages) are retained under
 site/releases, so package upgrades preserve their immutable URLs. Before each
 future release, retain the currently published artifact directory in this archive.
 Only a successful npm registry/provenance check establishes publication.
+
+## Compatibility redirects enabled — 7 September 2026
+
+The owner authorized activation after the main website's /sdk, /sdk/data-security
+and /sdk/demo pages passed hosted checks. Pages now stages with --redirect-docs and
+runs the redirect preservation test before deployment. The root/index.html,
+trust.html and demo.html redirect to their matching main-site destinations.
+GitHub Pages serves HTML redirects with JavaScript query/hash preservation and
+canonical/meta-refresh/fallback links, not HTTP 301 responses. No DNS changes.
+
+The currently published npm/source 7b10230 artifact is archived alongside the
+previous two builds under site/releases before this deployment. Release/source
+files, llms.txt and scripts remain on the compatibility host. npm stays at 0.4.0;
+this documentation deployment does not publish a new package or change app code.
