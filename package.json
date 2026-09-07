@@ -1,7 +1,7 @@
 {
   "name": "@sightspool/sdk",
-  "version": "0.3.0",
-  "description": "Sightspool in-product capture SDK — captures user intent, effort, and account at the moment of friction.",
+  "version": "0.4.0",
+  "description": "Sightspool research SDK \u2014 invite website visitors and signed-in users into approved user research.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -32,12 +32,9 @@
   },
   "keywords": [
     "sightspool",
-    "analytics",
-    "product-analytics",
     "user-research",
-    "ux",
-    "intent",
-    "telemetry",
+    "research",
+    "interviews",
     "sdk"
   ],
   "engines": {

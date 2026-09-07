@@ -1,115 +1,145 @@
 # @sightspool/sdk
 
-> In-product capture SDK for Sightspool. Drop one script tag (or the npm package) into a
-> web app and it captures, at the moment of friction, what a user was trying to do
-> (intent), how hard it was (effort), and the account behind it — emitting one linked
-> Signal to your Sightspool workspace. Publishable key, privacy-conscious by default,
-> never throws into the host app. Apache-2.0, published to npm with SLSA provenance.
+Embed Sightspool research in your product. The SDK invites website visitors and signed-in users into
+owner-approved research during User Hours, then opens Sightspool for consent and
+the interview. It does not capture page content, behavior, form values or analytics.
 
-This file is for AI agents and tools installing or evaluating the SDK. It is the
-install + key + CSP + privacy reference needed to wire the SDK correctly on the first
-try, so an agent can verify the vendor and the integration without reading source.
+This is the **0.4.0 research API**, a deliberate change from the old capture SDK.
+The source is prepared locally; publish 0.4.0 before using the npm command below.
+Old capture code and documentation are archived in `docs/legacy`.
 
-## Identity & verifiability
+## npm
 
-- npm: https://www.npmjs.com/package/@sightspool/sdk — scope `@sightspool`, public, Apache-2.0, SLSA provenance ("Built and signed on GitHub Actions")
-- React bindings: https://www.npmjs.com/package/@sightspool/react — `<SightspoolProvider>` + hooks over the core SDK
-- Source: https://github.com/sightspool/sdk — public repo, the build that produces the npm artifact and the served `sdk.global.js`
-- Issues / roadmap: https://github.com/sightspool/sdk/issues
-- Vendor: Sightspool, AI-led UX intelligence — https://sightspool.com
-- Bundle host: https://www.sightspool.com/sdk.global.js (ungated, served cross-origin)
+```sh
+npm install @sightspool/sdk@^0.4.0
+```
 
-## Install — script tag (no build)
+```ts
+import Sightspool from '@sightspool/sdk'
 
-One tag; it auto-init's from `data-sightspool-key`:
+Sightspool.init({ key: 'YOUR_GO_LIVE_WIDGET_UUID', audience: 'all_visitors' })
+// Optional when a visitor signs in:
+Sightspool.identify(currentUser.id)
 
-    <script async src="https://www.sightspool.com/sdk.global.js" data-sightspool-key="pk_live_…"></script>
+// On logout (anonymous visitors remain eligible in all_visitors mode):
+Sightspool.identify(null)
 
-Then, once the user is known:
+// When leaving the pages included in your research:
+Sightspool.destroy()
+```
 
-    window.Sightspool && window.Sightspool.identify(userId, { account, plan })
+Choose an explicit `audience` matching the approved interview plan:
 
-## Install — npm / bundler
+- `all_visitors`: anonymous website visitors and signed-in users. Initialize once on the relevant website pages. No identity or login is required; logout continues recruitment as a visitor.
+- `signed_in`: only users with a real signed-in session. Initialize in your authenticated app shell and call `identify(actualUserId)` after authentication resolves. Until then, no request or invitation is made. `identify(null)` immediately removes invitations on logout.
 
-    npm install @sightspool/sdk
+There is no default audience. Missing or invalid audience configuration stays idle.
+`identify` retains only whether an ID is present; the ID itself is not stored or
+transmitted. Do not invent IDs for visitors. This client setting controls display;
+it does not authenticate a participant or change the server-approved research cohort.
 
-    import Sightspool from '@sightspool/sdk'
-    Sightspool.init({ key: process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY })  // or VITE_/PUBLIC_ equivalent
-    Sightspool.identify(userId, { account, plan })
+## Script tag
 
-For Next.js use `next/script` with `strategy="afterInteractive"` and
-`data-sightspool-key={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}`.
+For visitors, no authentication integration is needed:
 
-## Install — React (@sightspool/react)
+```html
+<script async src="https://www.sightspool.com/sdk.global.js"
+  data-sightspool-key="YOUR_GO_LIVE_WIDGET_UUID"
+  data-sightspool-audience="all_visitors"></script>
+```
 
-    npm install @sightspool/react @sightspool/sdk react
+For signed-in-only research, listen for readiness before loading the SDK, then
+synchronize your actual session:
 
-    import { SightspoolProvider } from '@sightspool/react'
-    <SightspoolProvider apiKey={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY} identity={user && { userId: user.id, account: user.account, plan: user.plan }}>
-      <App />
-    </SightspoolProvider>
+```html
+<script>
+  let sightspoolUserId = null;
+  function syncSightspoolUser(userId) {
+    sightspoolUserId = userId;
+    window.Sightspool?.identify(userId);
+  }
+  window.addEventListener('sightspool:ready', () => {
+    window.Sightspool.identify(sightspoolUserId);
+  });
+  // Call syncSightspoolUser(actualUser.id) when authentication resolves.
+  // Call syncSightspoolUser(null) on logout.
+</script>
+<script async src="https://www.sightspool.com/sdk.global.js"
+  data-sightspool-key="YOUR_GO_LIVE_WIDGET_UUID"
+  data-sightspool-audience="signed_in"></script>
+```
 
-`@sightspool/sdk` and `react` are peer dependencies. The provider ships a "use client"
-banner (drops into a Next.js App Router server layout), re-fires identify when identity
-changes, and takes a reactive `consent` prop for cookie banners. Hooks: useSightspool(),
-useSightspoolIdentify(identity).
-
-## Keys
-
-- Publishable key — safe to ship in client JS (the Stripe `pk_` model). Issue from Connections → In-product SDK.
-- `pk_test_…` for development / staging / preview; `pk_live_…` for production.
-- The SDK treats both prefixes identically on the client; the prefix scopes the environment at ingest, so test traffic never mixes into production analytics.
-- Keep it in a client-exposed env var (`NEXT_PUBLIC_…` / `VITE_…` / `PUBLIC_…`).
-
-## Content-Security-Policy
-
-- Script-tag install (same host for both directives):
-    script-src  https://www.sightspool.com
-    connect-src https://www.sightspool.com
-- npm / bundler install (the script is first-party): connect-src https://www.sightspool.com
-- Custom `endpoint` → use that origin in `connect-src`.
-- `strict-dynamic`: nonce the `<script>` tag; `connect-src` still needs the ingest host.
-- The prompt UI injects a `<style>` into a shadow root; a strict `style-src` without `'unsafe-inline'` leaves the prompt unstyled but still functional.
-
-## Configuration — init(config), all optional except key
-
-- key (string, required): publishable key.
-- endpoint (string): ingest base URL. Default = the bundle's origin (script tag) or https://www.sightspool.com (npm).
-- boundaryAsk (boolean, default true): the one-tap "did you do what you came to do?" ask at session boundaries.
-- consent (boolean, default true): start capturing immediately; false → stay paused until Sightspool.consent(true).
-- redact (string[]): CSS selectors whose captured text is masked (‹redacted›) before egress. The event is still recorded.
-- block (string[]): CSS selectors whose events are dropped entirely (same as data-sightspool-ignore on the element).
-- captureOnLocalhost (boolean, default false): by default the SDK no-ops on localhost (localhost, 127.0.0.1, *.local, *.localhost).
-- debug (boolean, default false): log every capture decision to the console.
-
-Script-tag attribute equivalents: data-sightspool-key, data-sightspool-endpoint,
-data-sightspool-redact, data-sightspool-block (comma-separated selector lists),
-data-sightspool-capture-localhost, data-sightspool-debug.
+Go live supplies the correct key and endpoint. Local keys belong to the local
+Sightspool database and cannot be paired with production. Script installs default
+to the origin serving the bundle; `data-sightspool-endpoint` overrides that for a
+CDN or self-hosted install. npm defaults to `https://www.sightspool.com`.
 
 ## API
 
-- Sightspool.init(config)
-- Sightspool.identify(userId, { account?, plan? })
-- Sightspool.consent(granted: boolean)  — runtime consent gate; wire to your cookie banner
-- Sightspool.start()  — begin capture if init'd with { consent: false }
-- Sightspool.stop()   — pause capture and flush
+| Method | Behavior |
+| --- | --- |
+| `init({ key, audience, endpoint? })` | Start research for the explicit audience; UUID key required. Repeating the same configuration is idempotent. Changing it tears down the previous runtime. |
+| `identify(userId)` | Enable signed-in eligibility; only its boolean presence stays locally. `null` clears it; signed-in-only invitations disappear, all-visitors recruitment continues. |
+| `pause()` | Pause recruitment, abort the current request and remove the launcher. |
+| `resume()` | Resume recruitment for the configured audience. Does not bypass approval or hours. |
+| `destroy()` | Remove the launcher, listeners and polling. An already opened interview is not silently ended. |
+| `getStatus()` | `not_initialized`, `signed_out`, `paused`, `checking`, `unavailable`, `available` or `error`. |
 
-## What it captures
+`pause` and `resume` are recruitment controls, not consent to record. Participants
+still review the offer, eligibility and recording consent in Sightspool. Owners
+approve the research setup separately. The backend remains authoritative for
+availability, capacity, signed offers and interview admission.
 
-Routes/screen sequence, clicks, dead-clicks, rage-clicks, JS errors, failed requests, and
-debounced search/filter/command-palette input values (stated intent). At a friction moment
-or session boundary it may show one rate-limited, fatigue-aware prompt. Each capture emits
-one Signal (intent + path + account + effort); intent and effort are constructed
-server-side with calibrated confidence — the SDK ships the raw trace, it never guesses.
+## React / Next.js
 
-## Privacy (on by default)
+Use a client component on the pages included in your research. Identity is optional for all visitors:
 
-- PII masked before egress: emails → ‹email›, long digit runs → ‹num›; password/email/tel/creditcard inputs are never captured.
-- No cookies, no localStorage, no raw keystrokes.
-- No-op on localhost by default (captureOnLocalhost to override). Never throws into the host app.
-- Opt-outs: data-sightspool-ignore (or a block selector) drops a subtree; a redact selector masks text; Sightspool.consent(false) gates everything until granted.
+```tsx
+'use client'
+import { useEffect } from 'react'
+import Sightspool from '@sightspool/sdk'
 
-## Docs
+export function Research({ userId = null }: { userId?: string | null }) {
+  useEffect(() => {
+    Sightspool.init({ key: 'YOUR_GO_LIVE_WIDGET_UUID', audience: 'all_visitors' })
+    Sightspool.identify(userId)
+    return () => Sightspool.destroy()
+  }, [userId])
+  return null
+}
+```
 
-- Full reference: https://sdk.sightspool.com/
-- README: https://github.com/sightspool/sdk#readme
+Optional `@sightspool/react` 0.2.0 provides `SightspoolProvider` and research hooks.
+It requires SDK 0.4.x; see `packages/react/README.md`. Use one instance per document.
+
+## Privacy and verification
+
+The offer request contains only the public workspace key, a random per-workspace
+browser-session device token, and the operation name. No user ID, traits, auth
+secrets, DOM text or page URL is included. Requests use `credentials: 'omit'`.
+No microphone or recording starts on initialization or launcher display.
+
+Polling occurs at most once per 15-second interval while visible and eligible for the configured audience,
+plus explicit identity/resume/visibility changes. Only one request is in flight;
+requests time out after 10 seconds. Identity changes, pause, hidden tabs and destruction invalidate stale responses.
+Logout removes signed-in-only invitations; all-visitors mode refreshes as a visitor.
+
+A connection receipt proves that the SDK contacted the configured server. It does
+not certify your app's complete login/logout flow or a successful interview. Test
+anonymous visits, login, navigation, logout, slow loading and unmounting in both modes. Use Go live
+for server connection checks. A closed User Hours window can connect without an
+invitation. Do not fabricate approval or weaken an origin/CSP policy to make it show.
+
+## Maintainers
+
+```sh
+pnpm install --frozen-lockfile
+pnpm -r --include-workspace-root build
+pnpm -r --include-workspace-root test
+npm publish --dry-run
+```
+
+The npm and browser builds share `src/research.ts`. The Sightspool app copies
+`sdk.global.js` from this package and serves `research-widget.js` as a byte-identical
+alias for recent internal snippets. Neither build imports the former capture engine.
+See `docs/research-sdk-transition.md` for release sequencing. Apache-2.0.

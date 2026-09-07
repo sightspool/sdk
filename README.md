@@ -1,384 +1,145 @@
 # @sightspool/sdk
 
-In-product capture for [Sightspool](https://github.com/sightspool). Drop it into your web app and
-it captures, **at the moment of friction**, what a user was trying to do (*intent*),
-how hard it was (*effort*), and the account behind it — emitting one linked **Signal**
-into your Sightspool workspace.
+Embed Sightspool research in your product. The SDK invites website visitors and signed-in users into
+owner-approved research during User Hours, then opens Sightspool for consent and
+the interview. It does not capture page content, behavior, form values or analytics.
 
-It's the one source of data that exists nowhere else: the *silent failures* (the user
-who calmly couldn't do the thing, hit no error, filed no ticket, and left) and the
-*unmet demand* (goals your product has no path for, so no funnel or error ever records
-them).
+This is the **0.4.0 research API**, a deliberate change from the old capture SDK.
+The source is prepared locally; publish 0.4.0 before using the npm command below.
+Old capture code and documentation are archived in `docs/legacy`.
 
-> **Status:** v0.1, collect-side. The SDK *senses* — it captures and analyses. It does
-> **not** act on your surface (surveys/nudges/experiments are Wave 0005, and every one
-> is human-gated). Trigger sensitivity and intent inference calibrate with live traffic.
+## npm
 
-**Docs:** [full reference + CSP & framework guides](https://sdk.sightspool.com/) ·
-[llms.txt](https://sdk.sightspool.com/llms.txt) (the machine-readable install/CSP/config
-doc for agents) · [npm](https://www.npmjs.com/package/@sightspool/sdk)
-
----
-
-## Install — two lines
-
-### npm / bundler
-
-```bash
-npm install @sightspool/sdk
+```sh
+npm install @sightspool/sdk@^0.4.0
 ```
 
-```js
+```ts
 import Sightspool from '@sightspool/sdk'
 
-Sightspool.init({ key: 'pk_live_…' })
+Sightspool.init({ key: 'YOUR_GO_LIVE_WIDGET_UUID', audience: 'all_visitors' })
+// Optional when a visitor signs in:
+Sightspool.identify(currentUser.id)
 
-// once you know who the user is:
-Sightspool.identify(currentUser.id, { account: 'Vertex Logistics', plan: 'growth' })
+// On logout (anonymous visitors remain eligible in all_visitors mode):
+Sightspool.identify(null)
+
+// When leaving the pages included in your research:
+Sightspool.destroy()
 ```
 
-`init` boots passive capture immediately. `identify` attaches the user to an **account**
-and **plan** — the only required wiring, and it's what lets Sightspool rank by customer
-(and, with a connected billing source, by MRR). Most apps already make an equivalent
-call for their analytics/support tools.
+Choose an explicit `audience` matching the approved interview plan:
 
-### Script tag (no build step)
+- `all_visitors`: anonymous website visitors and signed-in users. Initialize once on the relevant website pages. No identity or login is required; logout continues recruitment as a visitor.
+- `signed_in`: only users with a real signed-in session. Initialize in your authenticated app shell and call `identify(actualUserId)` after authentication resolves. Until then, no request or invitation is made. `identify(null)` immediately removes invitations on logout.
+
+There is no default audience. Missing or invalid audience configuration stays idle.
+`identify` retains only whether an ID is present; the ID itself is not stored or
+transmitted. Do not invent IDs for visitors. This client setting controls display;
+it does not authenticate a participant or change the server-approved research cohort.
+
+## Script tag
+
+For visitors, no authentication integration is needed:
 
 ```html
-<script
-  async
-  src="https://www.sightspool.com/sdk.global.js"
-  data-sightspool-key="pk_live_…"
-></script>
+<script async src="https://www.sightspool.com/sdk.global.js"
+  data-sightspool-key="YOUR_GO_LIVE_WIDGET_UUID"
+  data-sightspool-audience="all_visitors"></script>
 ```
 
-The tag auto-`init`s from its `data-sightspool-key`. Call `identify` once the user is
-known:
+For signed-in-only research, listen for readiness before loading the SDK, then
+synchronize your actual session:
 
 ```html
 <script>
-  window.Sightspool && window.Sightspool.identify(userId, { account, plan })
+  let sightspoolUserId = null;
+  function syncSightspoolUser(userId) {
+    sightspoolUserId = userId;
+    window.Sightspool?.identify(userId);
+  }
+  window.addEventListener('sightspool:ready', () => {
+    window.Sightspool.identify(sightspoolUserId);
+  });
+  // Call syncSightspoolUser(actualUser.id) when authentication resolves.
+  // Call syncSightspoolUser(null) on logout.
 </script>
+<script async src="https://www.sightspool.com/sdk.global.js"
+  data-sightspool-key="YOUR_GO_LIVE_WIDGET_UUID"
+  data-sightspool-audience="signed_in"></script>
 ```
 
-(Loading the script before `Sightspool` is defined? Calls are safe to make against
-`window.Sightspool` once the script has loaded; until then, guard with `&&` as above.)
-
-The script tag also reads these optional attributes (the no-build equivalent of the
-`init` options — comma-separate selector lists):
-
-```html
-<script
-  async
-  src="https://www.sightspool.com/sdk.global.js"
-  data-sightspool-key="pk_live_…"
-  data-sightspool-block=".billing-panel, [data-private]"
-  data-sightspool-redact=".customer-name"
-  data-sightspool-debug
-  data-sightspool-capture-localhost
-></script>
-```
-
----
-
-## Configuration
-
-`init(config)` — all optional except `key`:
-
-| option | type | default | purpose |
-|---|---|---|---|
-| `key` | `string` | — | **required.** Your publishable key (`pk_test_…` / `pk_live_…`), from the Connections → In-product SDK card. Publishable — safe to ship in client JS. See [Keys & environments](#keys--environments). |
-| `endpoint` | `string` | the bundle's origin (script tag) / `https://www.sightspool.com` (npm) | Ingest base URL. The `<script>` install auto-resolves it to wherever `sdk.global.js` was served from (your app), so the key alone is enough; override for a CDN-hosted bundle or dev. |
-| `boundaryAsk` | `boolean` | `true` | Show the one-tap "did you do what you came to do?" ask at session boundaries. |
-| `interventions` | `boolean` | `true` | Show human-approved **surveys** served by your Sightspool workspace (see [Interventions](#interventions-surveys)). Set `false` to capture only. |
-| `consent` | `boolean` | `true` | Start capturing immediately. Set `false` to stay paused until you call `Sightspool.consent(true)` (or `start()`) after obtaining consent. |
-| `redact` | `string[]` | `[]` | CSS selectors whose captured text is **masked** (replaced with `‹redacted›`) before anything leaves the page. The event is still recorded — only its label is masked. |
-| `block` | `string[]` | `[]` | CSS selectors whose events are **dropped entirely** (the hard opt-out). Equivalent to putting `data-sightspool-ignore` on the element. |
-| `captureOnLocalhost` | `boolean` | `false` | By default the SDK **no-ops on localhost** (`localhost`, `127.0.0.1`, `*.local`, `*.localhost`) so your `npm run dev` traffic never pollutes analytics. Set `true` to capture locally (e.g. to test the install). |
-| `debug` | `boolean` | `false` | Log every capture decision to the console (`[sightspool] …`) so you can watch it work. |
-
-Server-side config (allowed CORS origins, additional redaction rules) lives on the
-Connections card and is enforced at ingest — the key alone can't post from an
-un-allowlisted origin.
-
-### Privacy controls at a glance
-
-| You want to… | Use |
-|---|---|
-| Never capture a subtree (e.g. a billing panel) | `data-sightspool-ignore` on the element, or a `block` selector |
-| Mask a field's text but still log the interaction | a `redact` selector (text → `‹redacted›`) |
-| Wait for cookie-banner consent | init `{ consent: false }` then `Sightspool.consent(true)` |
-| Keep dev traffic out of analytics | nothing — localhost is suppressed by default |
-
----
-
-## Keys & environments
-
-Your key is **publishable** — safe to ship in client JS (the Stripe `pk_` model). Two
-prefixes, one per environment:
-
-| prefix | use it for |
-|---|---|
-| `pk_test_…` | development / staging / preview deploys |
-| `pk_live_…` | production |
-
-The SDK treats both prefixes **identically** — there's no client-side special-casing; the
-prefix tells *Sightspool* (at ingest) which environment a Signal belongs to, so test traffic
-never mixes into production analytics. Issue both from **Connections → In-product SDK**.
-
-> The SDK also **no-ops on localhost** by default (see `captureOnLocalhost`), so even a
-> `pk_live_` key won't capture from `npm run dev`. Test keys are for *deployed* non-prod
-> environments (staging, previews).
-
-Keep the key in an environment variable rather than hardcoding it, and pick test vs live by
-environment. The key is exposed to the browser, so use your framework's **client** env-var
-prefix (`NEXT_PUBLIC_`, `VITE_`, `PUBLIC_`, …) — it's publishable, so that's expected:
-
-```js
-Sightspool.init({ key: process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY })
-```
-
-```bash
-# .env.development / preview
-NEXT_PUBLIC_SIGHTSPOOL_KEY=pk_test_…
-# .env.production
-NEXT_PUBLIC_SIGHTSPOOL_KEY=pk_live_…
-```
-
----
-
-## Framework integration
-
-### Next.js (App Router) — `next/script`
-
-The idiomatic install is `next/script`, not a raw `<script>`. Add it once in your root
-layout — the tag auto-`init`s from `data-sightspool-key`:
-
-```tsx
-// app/layout.tsx
-import Script from 'next/script'
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        {children}
-        <Script
-          src="https://www.sightspool.com/sdk.global.js"
-          data-sightspool-key={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}
-          strategy="afterInteractive"
-        />
-      </body>
-    </html>
-  )
-}
-```
-
-Then `identify` the user once known (e.g. a client component after auth):
-
-```tsx
-'use client'
-useEffect(() => {
-  window.Sightspool?.identify(user.id, { account: user.account, plan: user.plan })
-}, [user])
-```
-
-> `data-sightspool-key` is inlined at build time, so `NEXT_PUBLIC_SIGHTSPOOL_KEY` must be set
-> in the environment Next builds in. `strategy="afterInteractive"` keeps it off the critical
-> path.
-
-### React / Next.js — `@sightspool/react`
-
-For React apps, use the official bindings — a declarative provider over the core SDK:
-
-```bash
-npm install @sightspool/react @sightspool/sdk react
-```
-
-```tsx
-import { SightspoolProvider } from '@sightspool/react'
-
-<SightspoolProvider
-  apiKey={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY!}
-  identity={user && { userId: user.id, account: user.account, plan: user.plan }}
->
-  <App />
-</SightspoolProvider>
-```
-
-It ships a `"use client"` banner (drops straight into a Next.js App Router **server**
-layout), re-fires `identify` whenever `identity` changes, and takes a reactive `consent`
-prop for cookie banners. Full API:
-[@sightspool/react](https://www.npmjs.com/package/@sightspool/react) ·
-[packages/react](https://github.com/sightspool/sdk/tree/main/packages/react).
-
-<details><summary>Or wire the core SDK by hand (no wrapper)</summary>
-
-```tsx
-import { useEffect } from 'react'
-import Sightspool from '@sightspool/sdk'
-
-export function SightspoolBoot({ userId, account, plan }) {
-  useEffect(() => { Sightspool.init({ key: import.meta.env.VITE_SIGHTSPOOL_KEY }) }, [])
-  useEffect(() => { if (userId) Sightspool.identify(userId, { account, plan }) }, [userId, account, plan])
-  return null
-}
-```
-</details>
-
----
-
-## Content-Security-Policy
-
-If your app sets a CSP, allow the SDK's two footprints — the **script load** and the
-**ingest beacon**. With the standard install they're the *same host* (the bundle is served
-from the app it ingests to), so it's one host in two directives:
-
-**Script-tag install**
-
-```
-script-src  https://www.sightspool.com;
-connect-src https://www.sightspool.com;
-```
-
-**npm / bundler install** — the SDK is bundled into your own first-party JS, so no
-`script-src` host is needed; only the ingest origin:
-
-```
-connect-src https://www.sightspool.com;
-```
-
-If you pass a custom `endpoint`, use *that* origin in `connect-src`. The beacon goes via
-`navigator.sendBeacon` with a `fetch(keepalive)` fallback — both governed by `connect-src`.
-
-- **`strict-dynamic` / nonce.** Under `script-src 'strict-dynamic'`, host allowlists are
-  ignored for scripts — give the `<script>` tag your per-request nonce (`nonce={nonce}` in
-  Next) so it's trusted. `connect-src` still needs the ingest host.
-- **Prompt styles.** The one-tap prompt renders into a **shadow root** and injects its own
-  `<style>`. Under a strict `style-src` without `'unsafe-inline'`, those styles may not apply
-  — the prompt stays **fully functional but unstyled** (the SDK never throws into your page).
-  Add `'unsafe-inline'` to `style-src` if you want it styled.
-
----
-
-## Interventions (surveys)
-
-The SDK is two-way. Besides *capturing*, it can show a **human-approved survey** at the
-moment of friction — the "ask" side of Sightspool. You don't author these in code: your
-team proposes a survey off a proven finding in the app, **a human approves it**, sets who
-sees it (route / account / plan), and the SDK serves it. Nothing reaches a user without
-that approval ("no proof **and** no approval, no act").
-
-It's on by default — the same one or two install lines that capture also serve. When the
-SDK loads (and on each route change) it asks your workspace *"anything to show this user
-here?"*; if there's a matching approved survey, it renders a small card in a shadow root
-(your CSS can't reach it; it leaks no styles), and posts the answer back.
-
-```js
-Sightspool.init({ key: "pk_live_…" });          // serving is on by default
-Sightspool.init({ key: "pk_live_…", interventions: false }); // capture only
-```
-
-```html
-<!-- script-tag install: opt out with one attribute -->
-<script src="https://www.sightspool.com/sdk.global.js"
-        data-sightspool-key="pk_live_…"
-        data-sightspool-no-interventions></script>
-```
-
-**What shows, and how often** — all server-gated, so you stay in control:
-
-- **Targeting** — only to the route / account / plan the approver chose.
-- **De-dup** — a survey a user has answered never reappears (a per-user key is kept
-  locally; it's anonymous unless you've called `identify()`).
-- **Won't pester** — at most one survey on screen, one per session, and it shares a
-  cooldown with the boundary ask so the two never stack back-to-back. The run also stops
-  itself once it hits the approver's response target.
-
-The survey widget is **lazily loaded** — it splits into its own chunk and adds nothing to
-your bundle until a survey is actually served. Today the SDK renders one-tap / short-text
-surveys; richer types (incl. voice micro-research) render as they ship.
-
-## What it captures
-
-- **Passively, no wiring** — route/screen sequence, clicks, **dead-clicks** and
-  **rage-clicks**, client-side errors and failed requests, and a rolling trail of the
-  last meaningful events.
-- **Stated intent** — typed queries in search / filter / command-palette / empty-state
-  inputs, especially **zero-result** searches (the highest-signal intent, no question).
-- **The one-tap ask** (at a session boundary or after detected friction, rate-limited
-  and fatigue-aware): *"Were you able to do what you came here to do today?"* → on "Not
-  really," a short shortlist of likely goals + an always-present "Something else."
-
-Each capture emits one **Signal** (`intent + path + account + effort`). Intent and
-effort are *constructed* server-side with calibrated confidence — the SDK ships the
-raw trace and the answer; it never guesses.
-
----
-
-## Safety & privacy
-
-Privacy-conscious **by default** — these are on without any config:
-
-- **PII is masked before it leaves the page.** Emails and long digit runs (card /
-  account-number-ish) in any captured label are replaced with `‹email›` / `‹num›`.
-  Password, email, `tel`, and credit-card inputs are dropped entirely — their values
-  are **never** captured.
-- **No cookies, no `localStorage`, no raw keystrokes.** The SDK reads none of them. It
-  captures *debounced* search-input values (stated intent) and interaction events — not
-  a keylog.
-- **You control the rest.** Drop any subtree with `data-sightspool-ignore` or a `block`
-  selector; mask a field's text with a `redact` selector; gate everything behind
-  `Sightspool.consent(false)` until your cookie banner says otherwise.
-- **Suppressed on localhost** so dev traffic never pollutes analytics (opt back in with
-  `captureOnLocalhost`).
-
-And the engineering guarantees:
-
-- **Never throws into your app.** Every path is wrapped; capture degrades silently
-  (no Signal is worth a broken host UI).
-- **Tiny + non-blocking.** The prompt UI lazy-loads into a shadow root, so it can't be
-  styled-broken by your CSS and adds ~nothing to your bundle until it's needed.
-- **Processor posture.** Sightspool processes on your behalf; the prompt discloses that
-  diagnostic context is attached.
-
----
+Go live supplies the correct key and endpoint. Local keys belong to the local
+Sightspool database and cannot be paired with production. Script installs default
+to the origin serving the bundle; `data-sightspool-endpoint` overrides that for a
+CDN or self-hosted install. npm defaults to `https://www.sightspool.com`.
 
 ## API
 
-```ts
-Sightspool.init(config: SightspoolConfig): void
-Sightspool.identify(userId: string, traits?: { account?: string; plan?: string }): void
-Sightspool.consent(granted: boolean): void  // runtime consent toggle (wire to your cookie banner)
-Sightspool.start(): void   // begin capture if init'd with { consent: false } (alias of consent(true))
-Sightspool.stop(): void    // pause capture and flush (alias of consent(false))
+| Method | Behavior |
+| --- | --- |
+| `init({ key, audience, endpoint? })` | Start research for the explicit audience; UUID key required. Repeating the same configuration is idempotent. Changing it tears down the previous runtime. |
+| `identify(userId)` | Enable signed-in eligibility; only its boolean presence stays locally. `null` clears it; signed-in-only invitations disappear, all-visitors recruitment continues. |
+| `pause()` | Pause recruitment, abort the current request and remove the launcher. |
+| `resume()` | Resume recruitment for the configured audience. Does not bypass approval or hours. |
+| `destroy()` | Remove the launcher, listeners and polling. An already opened interview is not silently ended. |
+| `getStatus()` | `not_initialized`, `signed_out`, `paused`, `checking`, `unavailable`, `available` or `error`. |
+
+`pause` and `resume` are recruitment controls, not consent to record. Participants
+still review the offer, eligibility and recording consent in Sightspool. Owners
+approve the research setup separately. The backend remains authoritative for
+availability, capacity, signed offers and interview admission.
+
+## React / Next.js
+
+Use a client component on the pages included in your research. Identity is optional for all visitors:
+
+```tsx
+'use client'
+import { useEffect } from 'react'
+import Sightspool from '@sightspool/sdk'
+
+export function Research({ userId = null }: { userId?: string | null }) {
+  useEffect(() => {
+    Sightspool.init({ key: 'YOUR_GO_LIVE_WIDGET_UUID', audience: 'all_visitors' })
+    Sightspool.identify(userId)
+    return () => Sightspool.destroy()
+  }, [userId])
+  return null
+}
 ```
 
----
+Optional `@sightspool/react` 0.2.0 provides `SightspoolProvider` and research hooks.
+It requires SDK 0.4.x; see `packages/react/README.md`. Use one instance per document.
 
-## Roadmap (not yet built)
+## Privacy and verification
 
-Deliberately deferred from the v1 collect side. Most are **data-gated** — they need real
-traffic to calibrate, so they wait for the first production installs.
+The offer request contains only the public workspace key, a random per-workspace
+browser-session device token, and the operation name. No user ID, traits, auth
+secrets, DOM text or page URL is included. Requests use `credentials: 'omit'`.
+No microphone or recording starts on initialization or launcher display.
 
-- **Server-LLM State-B candidates** (`/api/sdk/candidates`). Today the prompt's candidate goals
-  are derived **locally** (recent search query + page label) — instant and free, but shallow. A
-  server endpoint would generate sharper candidates in the app's own feature vocabulary, at the
-  cost of a per-prompt round-trip; it must fall back to the local/generic ask within a tight
-  latency budget.
-- **Adaptive micro-interview** on high-value / high-MRR friction — a short, session-grounded,
-  agent-authored follow-up beyond the one-tap default, under the same fatigue caps.
-- **Reliable zero-result detection.** v1 harvests the typed query; flagging it as *zero-result*
-  (the highest-signal intent) is best-effort and needs per-app empty-state hints.
-- **Server-to-server signed (HMAC) ingest** — for non-browser / backend Signal sources (the
-  publishable-key + origin-allowlist posture is browser-only).
-- **Mobile / native SDK** — web-first for now.
+Polling occurs at most once per 15-second interval while visible and eligible for the configured audience,
+plus explicit identity/resume/visibility changes. Only one request is in flight;
+requests time out after 10 seconds. Identity changes, pause, hidden tabs and destruction invalidate stale responses.
+Logout removes signed-in-only invitations; all-visitors mode refreshes as a visitor.
 
-## Develop
+A connection receipt proves that the SDK contacted the configured server. It does
+not certify your app's complete login/logout flow or a successful interview. Test
+anonymous visits, login, navigation, logout, slow loading and unmounting in both modes. Use Go live
+for server connection checks. A closed User Hours window can connect without an
+invitation. Do not fabricate approval or weaken an origin/CSP policy to make it show.
 
-```bash
-pnpm install
-pnpm build        # tsup → dist/ (ESM + CJS + types + dist/sdk.global.js)
-pnpm type-check
-pnpm test         # node --test over the pure cores
+## Maintainers
+
+```sh
+pnpm install --frozen-lockfile
+pnpm -r --include-workspace-root build
+pnpm -r --include-workspace-root test
+npm publish --dry-run
 ```
+
+The npm and browser builds share `src/research.ts`. The Sightspool app copies
+`sdk.global.js` from this package and serves `research-widget.js` as a byte-identical
+alias for recent internal snippets. Neither build imports the former capture engine.
+See `docs/research-sdk-transition.md` for release sequencing. Apache-2.0.

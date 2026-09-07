@@ -1,15 +1,5 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@sightspool/sdk — in-product capture SDK</title>
-    <meta
-      name="description"
-      content="Install, configure, and verify the Sightspool in-product capture SDK: one script tag or npm package that captures user intent, effort, and account at the moment of friction. Includes CSP directives, framework snippets, key management, and the privacy posture."
-    />
-    <link rel="canonical" href="https://sdk.sightspool.com/" />
-    <style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sightspool research SDK</title><style>
       :root {
         --fg: #18181b;
         --muted: #52525b;
@@ -56,249 +46,72 @@
       footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line);
         font-size: 14px; color: var(--faint); }
       hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <header>
-        <h1>@sightspool/sdk</h1>
-        <p class="lede">
-          In-product capture for <a href="https://sightspool.com">Sightspool</a>. One script
-          tag (or npm package) captures, at the moment of friction, what a user was trying to
-          do (<em>intent</em>), how hard it was (<em>effort</em>), and the account behind it —
-          emitting one linked <strong>Signal</strong> to your workspace.
-        </p>
-        <nav class="links">
-          <a href="https://www.npmjs.com/package/@sightspool/sdk">npm</a>
-          <a href="https://github.com/sightspool/sdk">GitHub</a>
-          <a href="https://github.com/sightspool/sdk/issues">Issues</a>
-          <a href="llms.txt">llms.txt</a>
-          <a href="https://github.com/sightspool/sdk/blob/main/LICENSE">Apache-2.0</a>
-        </nav>
-        <p class="status">
-          v0.1, collect-side. The SDK <strong>senses</strong> — it captures and analyses; it
-          does not act on your surface (interventions are human-gated, a later wave).
-          Published to npm with <strong>SLSA provenance</strong> ("Built and signed on GitHub
-          Actions"), built in this public repo.
-        </p>
-      </header>
+    </style></head><body><main class="wrap"><header><h1>@sightspool/sdk</h1></header>
+<p>Embed Sightspool research in your product. The SDK invites website visitors and signed-in users into owner-approved research during User Hours, then opens Sightspool for consent and the interview. It does not capture page content, behavior, form values or analytics.</p>
+<p>This is the <strong>0.4.0 research API</strong>, a deliberate change from the old capture SDK. The source is prepared locally; publish 0.4.0 before using the npm command below. Old capture code and documentation are archived in <code>docs/legacy</code>.</p>
+<h2>npm</h2>
+<pre><code>npm install @sightspool/sdk@^0.4.0</code></pre>
+<pre><code>import Sightspool from &#x27;@sightspool/sdk&#x27;
 
-      <p class="toc">
-        <a href="#install">Install</a>
-        <a href="#keys">Keys</a>
-        <a href="#frameworks">Frameworks</a>
-        <a href="#csp">CSP</a>
-        <a href="#config">Configuration</a>
-        <a href="#captures">What it captures</a>
-        <a href="#privacy">Privacy</a>
-        <a href="#api">API</a>
-        <a href="#verify">Verify the install</a>
-      </p>
+Sightspool.init({ key: &#x27;YOUR_GO_LIVE_WIDGET_UUID&#x27;, audience: &#x27;all_visitors&#x27; })
+// Optional when a visitor signs in:
+Sightspool.identify(currentUser.id)
 
-      <h2 id="install">Install</h2>
+// On logout (anonymous visitors remain eligible in all_visitors mode):
+Sightspool.identify(null)
 
-      <h3>Script tag (no build step)</h3>
-      <p>One tag — it auto-<code>init</code>s from its <code>data-sightspool-key</code>:</p>
-      <pre><code>&lt;script
-  async
-  src="https://www.sightspool.com/sdk.global.js"
-  data-sightspool-key="pk_live_…"
-&gt;&lt;/script&gt;</code></pre>
-      <p>Then identify the user once known (guard with <code>&amp;&amp;</code> until the script has loaded):</p>
-      <pre><code>window.Sightspool &amp;&amp; window.Sightspool.identify(userId, { account, plan })</code></pre>
+// When leaving the pages included in your research:
+Sightspool.destroy()</code></pre>
+<p>Choose an explicit <code>audience</code> matching the approved interview plan:</p>
+<p>- <code>all_visitors</code>: anonymous website visitors and signed-in users. Initialize once on the relevant website pages. No identity or login is required; logout continues recruitment as a visitor. - <code>signed_in</code>: only users with a real signed-in session. Initialize in your authenticated app shell and call <code>identify(actualUserId)</code> after authentication resolves. Until then, no request or invitation is made. <code>identify(null)</code> immediately removes invitations on logout.</p>
+<p>There is no default audience. Missing or invalid audience configuration stays idle. <code>identify</code> retains only whether an ID is present; the ID itself is not stored or transmitted. Do not invent IDs for visitors. This client setting controls display; it does not authenticate a participant or change the server-approved research cohort.</p>
+<h2>Script tag</h2>
+<p>For visitors, no authentication integration is needed:</p>
+<pre><code>&lt;script async src=&quot;https://www.sightspool.com/sdk.global.js&quot;
+  data-sightspool-key=&quot;YOUR_GO_LIVE_WIDGET_UUID&quot;
+  data-sightspool-audience=&quot;all_visitors&quot;&gt;&lt;/script&gt;</code></pre>
+<p>For signed-in-only research, listen for readiness before loading the SDK, then synchronize your actual session:</p>
+<pre><code>&lt;script&gt;
+  let sightspoolUserId = null;
+  function syncSightspoolUser(userId) {
+    sightspoolUserId = userId;
+    window.Sightspool?.identify(userId);
+  }
+  window.addEventListener(&#x27;sightspool:ready&#x27;, () =&gt; {
+    window.Sightspool.identify(sightspoolUserId);
+  });
+  // Call syncSightspoolUser(actualUser.id) when authentication resolves.
+  // Call syncSightspoolUser(null) on logout.
+&lt;/script&gt;
+&lt;script async src=&quot;https://www.sightspool.com/sdk.global.js&quot;
+  data-sightspool-key=&quot;YOUR_GO_LIVE_WIDGET_UUID&quot;
+  data-sightspool-audience=&quot;signed_in&quot;&gt;&lt;/script&gt;</code></pre>
+<p>Go live supplies the correct key and endpoint. Local keys belong to the local Sightspool database and cannot be paired with production. Script installs default to the origin serving the bundle; <code>data-sightspool-endpoint</code> overrides that for a CDN or self-hosted install. npm defaults to <code>https://www.sightspool.com</code>.</p>
+<h2>API</h2>
+<table><tr><th>Method</th><th>Behavior</th></tr><tr><td><code>init({ key, audience, endpoint? })</code></td><td>Start research for the explicit audience; UUID key required. Repeating the same configuration is idempotent. Changing it tears down the previous runtime.</td></tr><tr><td><code>identify(userId)</code></td><td>Enable signed-in eligibility; only its boolean presence stays locally. <code>null</code> clears it; signed-in-only invitations disappear, all-visitors recruitment continues.</td></tr><tr><td><code>pause()</code></td><td>Pause recruitment, abort the current request and remove the launcher.</td></tr><tr><td><code>resume()</code></td><td>Resume recruitment for the configured audience. Does not bypass approval or hours.</td></tr><tr><td><code>destroy()</code></td><td>Remove the launcher, listeners and polling. An already opened interview is not silently ended.</td></tr><tr><td><code>getStatus()</code></td><td><code>not_initialized</code>, <code>signed_out</code>, <code>paused</code>, <code>checking</code>, <code>unavailable</code>, <code>available</code> or <code>error</code>.</td></tr></table>
+<p><code>pause</code> and <code>resume</code> are recruitment controls, not consent to record. Participants still review the offer, eligibility and recording consent in Sightspool. Owners approve the research setup separately. The backend remains authoritative for availability, capacity, signed offers and interview admission.</p>
+<h2>React / Next.js</h2>
+<p>Use a client component on the pages included in your research. Identity is optional for all visitors:</p>
+<pre><code>&#x27;use client&#x27;
+import { useEffect } from &#x27;react&#x27;
+import Sightspool from &#x27;@sightspool/sdk&#x27;
 
-      <h3>npm / bundler</h3>
-      <pre><code>npm install @sightspool/sdk</code></pre>
-      <pre><code>import Sightspool from '@sightspool/sdk'
-
-Sightspool.init({ key: process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY })
-Sightspool.identify(userId, { account, plan })</code></pre>
-      <p>
-        <code>init</code> boots passive capture immediately. <code>identify</code> attaches the
-        user to an <strong>account</strong> + <strong>plan</strong> — the only required wiring,
-        and what lets Sightspool rank by customer (and, with a billing source, by MRR).
-      </p>
-
-      <h2 id="keys">Keys &amp; environments</h2>
-      <p>
-        Your key is <strong>publishable</strong> — safe to ship in client JS (the Stripe
-        <code>pk_</code> model). Two prefixes, one per environment:
-      </p>
-      <table>
-        <thead><tr><th>prefix</th><th>use it for</th></tr></thead>
-        <tbody>
-          <tr><td><code>pk_test_…</code></td><td>development / staging / preview deploys</td></tr>
-          <tr><td><code>pk_live_…</code></td><td>production</td></tr>
-        </tbody>
-      </table>
-      <p>
-        The SDK treats both prefixes <strong>identically</strong> — there's no client-side
-        special-casing; the prefix tells <em>Sightspool</em> (at ingest) which environment a
-        Signal belongs to, so test traffic never mixes into production analytics. Issue both
-        from <strong>Connections → In-product SDK</strong>.
-      </p>
-      <blockquote>
-        The SDK also <strong>no-ops on localhost</strong> by default (see
-        <code>captureOnLocalhost</code>), so even a <code>pk_live_</code> key won't capture from
-        <code>npm run dev</code>. Test keys are for <em>deployed</em> non-prod environments.
-      </blockquote>
-      <p>Keep the key in a client-exposed env var (<code>NEXT_PUBLIC_</code> / <code>VITE_</code> / <code>PUBLIC_</code> …) and select test vs live per environment:</p>
-      <pre><code># .env.development / preview
-NEXT_PUBLIC_SIGHTSPOOL_KEY=pk_test_…
-# .env.production
-NEXT_PUBLIC_SIGHTSPOOL_KEY=pk_live_…</code></pre>
-
-      <h2 id="frameworks">Frameworks</h2>
-
-      <h3>Next.js (App Router) — <code>next/script</code></h3>
-      <p>The idiomatic install is <code>next/script</code>, not a raw <code>&lt;script&gt;</code>. Add it once in your root layout:</p>
-      <pre><code>// app/layout.tsx
-import Script from 'next/script'
-
-export default function RootLayout({ children }) {
-  return (
-    &lt;html lang="en"&gt;
-      &lt;body&gt;
-        {children}
-        &lt;Script
-          src="https://www.sightspool.com/sdk.global.js"
-          data-sightspool-key={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}
-          strategy="afterInteractive"
-        /&gt;
-      &lt;/body&gt;
-    &lt;/html&gt;
-  )
+export function Research({ userId = null }: { userId?: string | null }) {
+  useEffect(() =&gt; {
+    Sightspool.init({ key: &#x27;YOUR_GO_LIVE_WIDGET_UUID&#x27;, audience: &#x27;all_visitors&#x27; })
+    Sightspool.identify(userId)
+    return () =&gt; Sightspool.destroy()
+  }, [userId])
+  return null
 }</code></pre>
-      <p>Then <code>identify</code> the user once known (a client component after auth):</p>
-      <pre><code>'use client'
-useEffect(() =&gt; {
-  window.Sightspool?.identify(user.id, { account: user.account, plan: user.plan })
-}, [user])</code></pre>
-      <blockquote>
-        <code>data-sightspool-key</code> is inlined at build time, so
-        <code>NEXT_PUBLIC_SIGHTSPOOL_KEY</code> must be set where Next builds.
-        <code>strategy="afterInteractive"</code> keeps it off the critical path.
-      </blockquote>
-
-      <h3>React / Next.js — <code>@sightspool/react</code></h3>
-      <p>For React apps, use the official bindings — a declarative provider over the core SDK:</p>
-      <pre><code>npm install @sightspool/react @sightspool/sdk react</code></pre>
-      <pre><code>import { SightspoolProvider } from '@sightspool/react'
-
-&lt;SightspoolProvider
-  apiKey={process.env.NEXT_PUBLIC_SIGHTSPOOL_KEY}
-  identity={user &amp;&amp; { userId: user.id, account: user.account, plan: user.plan }}
-&gt;
-  &lt;App /&gt;
-&lt;/SightspoolProvider&gt;</code></pre>
-      <p>
-        It ships a <code>"use client"</code> banner (drops straight into a Next.js App Router
-        <strong>server</strong> layout), re-fires <code>identify</code> whenever
-        <code>identity</code> changes, and takes a reactive <code>consent</code> prop for cookie
-        banners. Full API:
-        <a href="https://www.npmjs.com/package/@sightspool/react">@sightspool/react</a>.
-        <code>@sightspool/sdk</code> and <code>react</code> are peer dependencies.
-      </p>
-
-      <h2 id="csp">Content-Security-Policy</h2>
-      <p>
-        Allow the SDK's two footprints — the <strong>script load</strong> and the
-        <strong>ingest beacon</strong>. With the standard install they're the <em>same host</em>
-        (the bundle is served from the app it ingests to), so it's one host in two directives:
-      </p>
-      <p><strong>Script-tag install</strong></p>
-      <pre><code>script-src  https://www.sightspool.com;
-connect-src https://www.sightspool.com;</code></pre>
-      <p><strong>npm / bundler install</strong> — the SDK is bundled into your own first-party JS, so no <code>script-src</code> host is needed; only the ingest origin:</p>
-      <pre><code>connect-src https://www.sightspool.com;</code></pre>
-      <p>
-        If you pass a custom <code>endpoint</code>, use that origin in <code>connect-src</code>.
-        The beacon goes via <code>navigator.sendBeacon</code> with a <code>fetch(keepalive)</code>
-        fallback — both governed by <code>connect-src</code>.
-      </p>
-      <ul>
-        <li>
-          <strong><code>strict-dynamic</code> / nonce.</strong> Under
-          <code>script-src 'strict-dynamic'</code>, host allowlists are ignored for scripts —
-          give the <code>&lt;script&gt;</code> tag your per-request nonce
-          (<code>nonce={nonce}</code> in Next). <code>connect-src</code> still needs the ingest host.
-        </li>
-        <li>
-          <strong>Prompt styles.</strong> The one-tap prompt renders into a <strong>shadow
-          root</strong> and injects its own <code>&lt;style&gt;</code>. Under a strict
-          <code>style-src</code> without <code>'unsafe-inline'</code>, those styles may not apply
-          — the prompt stays <strong>functional but unstyled</strong> (the SDK never throws into
-          your page). Add <code>'unsafe-inline'</code> to <code>style-src</code> to style it.
-        </li>
-      </ul>
-
-      <h2 id="config">Configuration</h2>
-      <p><code>init(config)</code> — all optional except <code>key</code>. Script-tag installs use the <code>data-sightspool-*</code> attribute equivalents.</p>
-      <table>
-        <thead><tr><th>option</th><th>default</th><th>purpose</th></tr></thead>
-        <tbody>
-          <tr><td><code>key</code></td><td>—</td><td><strong>required.</strong> Publishable key (<code>pk_test_…</code> / <code>pk_live_…</code>).</td></tr>
-          <tr><td><code>endpoint</code></td><td>bundle origin / <code>www.sightspool.com</code></td><td>Ingest base URL. The <code>&lt;script&gt;</code> install auto-resolves it to where <code>sdk.global.js</code> was served from.</td></tr>
-          <tr><td><code>boundaryAsk</code></td><td><code>true</code></td><td>Show the one-tap "did you do what you came to do?" ask at session boundaries.</td></tr>
-          <tr><td><code>consent</code></td><td><code>true</code></td><td>Start capturing immediately. <code>false</code> → stay paused until <code>Sightspool.consent(true)</code>.</td></tr>
-          <tr><td><code>redact</code></td><td><code>[]</code></td><td>CSS selectors whose captured text is <strong>masked</strong> (<code>‹redacted›</code>) before egress. The event is still recorded.</td></tr>
-          <tr><td><code>block</code></td><td><code>[]</code></td><td>CSS selectors whose events are <strong>dropped entirely</strong> (same as <code>data-sightspool-ignore</code>).</td></tr>
-          <tr><td><code>captureOnLocalhost</code></td><td><code>false</code></td><td>By default the SDK <strong>no-ops on localhost</strong>. Set <code>true</code> to capture locally.</td></tr>
-          <tr><td><code>debug</code></td><td><code>false</code></td><td>Log every capture decision to the console (<code>[sightspool] …</code>).</td></tr>
-        </tbody>
-      </table>
-      <p>
-        Script-tag attributes: <code>data-sightspool-key</code>,
-        <code>data-sightspool-endpoint</code>, <code>data-sightspool-redact</code>,
-        <code>data-sightspool-block</code> (comma-separated selector lists),
-        <code>data-sightspool-capture-localhost</code>, <code>data-sightspool-debug</code>.
-      </p>
-
-      <h2 id="captures">What it captures</h2>
-      <p>
-        Routes/screen sequence, clicks, <strong>dead-clicks</strong> and
-        <strong>rage-clicks</strong>, JS errors and failed requests, and debounced
-        search / filter / command-palette input values (<strong>stated intent</strong>). At a
-        friction moment or session boundary it may show one rate-limited, fatigue-aware prompt.
-        Each capture emits one <strong>Signal</strong> (intent + path + account + effort); intent
-        and effort are constructed server-side with calibrated confidence — the SDK ships the raw
-        trace, it never guesses.
-      </p>
-
-      <h2 id="privacy">Privacy</h2>
-      <p>Privacy-conscious <strong>by default</strong> — on without any config:</p>
-      <ul>
-        <li><strong>PII masked before egress.</strong> Emails → <code>‹email›</code>, long digit runs → <code>‹num›</code>. Password / email / <code>tel</code> / credit-card inputs are never captured.</li>
-        <li><strong>No cookies, no <code>localStorage</code>, no raw keystrokes.</strong> Debounced search-input values, not a keylog.</li>
-        <li><strong>Suppressed on localhost</strong> so dev traffic never pollutes analytics (<code>captureOnLocalhost</code> to override).</li>
-        <li><strong>Never throws into your app.</strong> Every path is wrapped; capture degrades silently.</li>
-      </ul>
-      <p>You control the rest: <code>data-sightspool-ignore</code> or a <code>block</code> selector drops a subtree; a <code>redact</code> selector masks a field's text; <code>Sightspool.consent(false)</code> gates everything until your cookie banner says otherwise.</p>
-
-      <h2 id="api">API</h2>
-      <pre><code>Sightspool.init(config): void
-Sightspool.identify(userId, { account?, plan? }): void
-Sightspool.consent(granted: boolean): void  // runtime gate; wire to your cookie banner
-Sightspool.start(): void   // begin capture if init'd with { consent: false }
-Sightspool.stop(): void    // pause capture and flush</code></pre>
-
-      <h2 id="verify">Verify the install</h2>
-      <p>
-        Add <code>data-sightspool-debug</code> (or <code>init({ debug: true })</code>) to log every
-        capture decision to the console as <code>[sightspool] …</code>. In your Sightspool
-        workspace, the <strong>Connections → In-product SDK</strong> card shows raw Signals landing
-        within seconds of the first beacon (pre-inference), and the <strong>/signals</strong> page
-        shows the inferred inbox. Remember capture is suppressed on localhost unless you set
-        <code>captureOnLocalhost</code>.
-      </p>
-
-      <footer>
-        <p>
-          @sightspool/sdk · Apache-2.0 · built in
-          <a href="https://github.com/sightspool/sdk">github.com/sightspool/sdk</a> ·
-          machine-readable: <a href="llms.txt">llms.txt</a>
-        </p>
-      </footer>
-    </div>
-  </body>
-</html>
+<p>Optional <code>@sightspool/react</code> 0.2.0 provides <code>SightspoolProvider</code> and research hooks. It requires SDK 0.4.x; see <code>packages/react/README.md</code>. Use one instance per document.</p>
+<h2>Privacy and verification</h2>
+<p>The offer request contains only the public workspace key, a random per-workspace browser-session device token, and the operation name. No user ID, traits, auth secrets, DOM text or page URL is included. Requests use <code>credentials: &#x27;omit&#x27;</code>. No microphone or recording starts on initialization or launcher display.</p>
+<p>Polling occurs at most once per 15-second interval while visible and eligible for the configured audience, plus explicit identity/resume/visibility changes. Only one request is in flight; requests time out after 10 seconds. Identity changes, pause, hidden tabs and destruction invalidate stale responses. Logout removes signed-in-only invitations; all-visitors mode refreshes as a visitor.</p>
+<p>A connection receipt proves that the SDK contacted the configured server. It does not certify your app&#x27;s complete login/logout flow or a successful interview. Test anonymous visits, login, navigation, logout, slow loading and unmounting in both modes. Use Go live for server connection checks. A closed User Hours window can connect without an invitation. Do not fabricate approval or weaken an origin/CSP policy to make it show.</p>
+<h2>Maintainers</h2>
+<pre><code>pnpm install --frozen-lockfile
+pnpm -r --include-workspace-root build
+pnpm -r --include-workspace-root test
+npm publish --dry-run</code></pre>
+<p>The npm and browser builds share <code>src/research.ts</code>. The Sightspool app copies <code>sdk.global.js</code> from this package and serves <code>research-widget.js</code> as a byte-identical alias for recent internal snippets. Neither build imports the former capture engine. See <code>docs/research-sdk-transition.md</code> for release sequencing. Apache-2.0.</p></main></body></html>
