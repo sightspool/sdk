@@ -62,3 +62,24 @@ not establish a historical CDN retention guarantee.
 An independent review brief is in docs/security-review-brief.md. Regions, provider
 logs/backups and full backend data handling need deployment-specific verification;
 they are visibly separated from source-proven SDK behavior in the public guide.
+
+## Documentation home — 7 September 2026
+
+The owner approved integrating SDK documentation at `https://www.sightspool.com/sdk`
+with the main website's shared navigation, branding and footer. The main app renders
+technical content from its pinned SDK package, not a separately maintained copy.
+Data/security, demo and release pages live at `/sdk/data-security`, `/sdk/demo` and
+`/sdk/releases`. SDK source, package ownership and releases remain in this repository.
+The interactive demo stays in a sandboxed iframe because it replaces fetch/open.
+
+The existing GitHub Pages domain is a compatibility address, not a required separate
+documentation product. **No live domain or Pages deployment changed.** After the main
+pages pass hosted acceptance, build the SDK and run
+`node scripts/stage-site.mjs --redirect-docs` to prepare documentation-only redirects.
+Default staging and the existing Pages workflow do not enable these redirects yet.
+GitHub Pages uses an HTML redirect with canonical/fallback links (not an HTTP 301).
+The three exact HTML paths preserve query/hash; manifests, llms.txt, scripts, source
+snapshots and release directories are left alone. Retain earlier released artifact
+directories when assembling any future Pages deployment. Do not use a host-wide redirect.
+The default standalone HTML remains a fallback until that coordinated release; then
+update README/llms canonical links to the main website at the same release gate.
