@@ -52,7 +52,7 @@ function openPanel(r: Runtime) {
   panel.id = "sightspool-interview-panel";
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", "Sightspool interview");
-  panel.style.cssText = "position:fixed;bottom:16px;right:16px;z-index:2147483001;width:420px;max-width:calc(100vw - 32px);height:680px;max-height:calc(100dvh - 32px);border:1px solid #e6dfe3;border-radius:20px;background:#fff;color:#262024;box-shadow:0 12px 50px #0003;overflow:hidden;font:14px system-ui;display:flex;flex-direction:column";
+  panel.style.cssText = "position:fixed;bottom:16px;right:16px;z-index:2147483001;box-sizing:border-box;width:420px;max-width:calc(100% - 32px);height:680px;max-height:calc(100dvh - 32px);border:1px solid #e6dfe3;border-radius:20px;background:#fff;color:#262024;box-shadow:0 12px 50px #0003;overflow:hidden;font:14px system-ui;display:flex;flex-direction:column";
   const header = document.createElement("div");
   header.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;flex-shrink:0";
   const title = document.createElement("strong"); title.textContent = "Sightspool";
