@@ -38,6 +38,7 @@ function expand(r: Runtime, expanded: boolean) {
   if (!r.panel || !r.frame || !r.button) return;
   r.expanded = expanded;
   r.panel.hidden = !expanded;
+  r.panel.style.display = expanded ? "flex" : "none";
   r.button.hidden = expanded;
   r.button.setAttribute("aria-expanded", String(expanded));
   if (expanded) {
@@ -52,15 +53,13 @@ function openPanel(r: Runtime) {
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", "Sightspool interview");
   panel.style.cssText = "position:fixed;bottom:16px;right:16px;z-index:2147483001;width:420px;max-width:calc(100vw - 32px);height:680px;max-height:calc(100dvh - 32px);border:1px solid #e6dfe3;border-radius:20px;background:#fff;color:#262024;box-shadow:0 12px 50px #0003;overflow:hidden;font:14px system-ui;display:flex;flex-direction:column";
-  // Explicit hidden styling beats the inline flex rule without removing the frame.
-  const setHidden = () => { panel.style.display = panel.hidden ? "none" : "flex"; };
   const header = document.createElement("div");
   header.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;flex-shrink:0";
   const title = document.createElement("strong"); title.textContent = "Sightspool";
   const minimize = document.createElement("button");
   minimize.type = "button"; minimize.textContent = "Minimize";
   minimize.style.cssText = "font:inherit;color:inherit;background:#fff;border:1px solid #d6cbd1;border-radius:8px;padding:8px 12px;cursor:pointer";
-  const hide = () => { expand(r, false); setHidden(); };
+  const hide = () => { expand(r, false); };
   minimize.onclick = hide;
   header.appendChild(title); header.appendChild(minimize); panel.appendChild(header);
   const frame = document.createElement("iframe");
@@ -86,7 +85,7 @@ function openPanel(r: Runtime) {
   r.button.textContent = "Return to interview";
   r.button.setAttribute("aria-label", "Sightspool: return to your interview");
   r.button.setAttribute("aria-controls", panel.id);
-  r.button.onclick = () => { expand(r, true); setHidden(); };
+  r.button.onclick = () => { expand(r, true); };
   document.body.appendChild(panel);
   expand(r, true);
 }
