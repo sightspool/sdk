@@ -1,3 +1,9 @@
+## 0.4.1 — unpublished local candidate
+
+- Replace popup interview delivery with one persistent corner panel.
+- Keep open sessions mounted across minimize and recruitment cleanup.
+- Restrict iframe permissions and validate parent message origin/source.
+
 # Changelog
 
 ## 0.4.0 — prepared, unpublished

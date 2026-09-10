@@ -27,18 +27,25 @@ function browser() {
   const visibility = new Set<() => void>();
   const storage = new Map<string, string>();
   const popups: string[] = [];
+  const messages = new Set<(event: any) => void>();
   let timerId = 0;
   const window: any = {
     setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout,
     setInterval(fn: () => void) { timers.set(++timerId, fn); return timerId; },
     clearInterval(id: number) { timers.delete(id); },
+    addEventListener(name: string, fn: (event: any) => void) { assert.equal(name, "message"); messages.add(fn); },
+    removeEventListener(_name: string, fn: (event: any) => void) { messages.delete(fn); },
     open(url: string) { popups.push(url); return { closed: false, focus() {} }; },
   };
   const document: any = {
     visibilityState: "visible",
     createElement(tag: string) {
-      assert.equal(tag, "button");
-      const el: any = { style: {}, setAttribute() {}, remove() { const i = elements.indexOf(el); if (i >= 0) elements.splice(i, 1); } };
+      const el: any = { tag, children: [], attributes: {}, style: {}, hidden: false, contentWindow: {},
+        appendChild(child: any) { this.children.push(child); },
+        focus() { document.activeElement = el; },
+        querySelector() { return this.children[0]?.children.find((c: any) => c.tag === "button"); },
+        setAttribute(k: string, v: string) { this.attributes[k] = v; },
+        remove() { const i = elements.indexOf(el); if (i >= 0) elements.splice(i, 1); } };
       return el;
     },
     body: { appendChild(el: any) { elements.push(el); } },
@@ -48,7 +55,7 @@ function browser() {
   const fetch = (url: string, input: RequestInit) => new Promise((resolve, reject) => { requests.push({ url, input, resolve, reject }); });
   const sessionStorage = { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => storage.set(k, v) };
   const respond = async (i: number, result: unknown, ok = true) => { requests[i].resolve({ ok, json: async () => result }); await tick(); };
-  return { window, document, fetch, sessionStorage, requests, elements, timers, visibility, storage, popups, respond };
+  return { window, document, fetch, sessionStorage, requests, elements, timers, visibility, storage, popups, messages, respond };
 }
 
 test("research is idle before sign-in and sends no user identity, page data or capture requests", async () => {
@@ -72,20 +79,40 @@ test("research is idle before sign-in and sends no user identity, page data or c
   });
 });
 
-test("one server-approved offer renders once and opens only on click with capability in fragment", async () => {
+test("one approved offer opens an embedded session; minimize and recruitment changes preserve it", async () => {
   await browserTest(async (env) => {
     sdk.init({ audience: "signed_in", key }); sdk.init({ audience: "signed_in", key }); sdk.identify("a-user"); sdk.resume();
     env.timers.forEach((fn) => fn());
     assert.equal(env.timers.size, 1); assert.equal(env.requests.length, 1);
     await env.respond(0, { available: true, offer: "signed-capability" });
-    assert.equal(sdk.getStatus(), "available"); assert.equal(env.elements.length, 1); assert.equal(env.popups.length, 0);
-    env.elements[0].onclick();
-    const url = new URL(env.popups[0]);
-    assert.equal(url.pathname, "/interview-widget"); assert.equal(url.search, "");
+    const launcher = env.elements[0]; launcher.onclick();
+    assert.equal(env.popups.length, 0);
+    const panel = env.elements[1], frame = panel.children[1];
+    const url = new URL(frame.src);
+    assert.equal(url.pathname, "/interview-widget");
+    assert.equal(url.searchParams.get("key"), key);
+    assert.equal(url.search.includes("signed-capability"), false);
     assert.equal(new URLSearchParams(url.hash.slice(1)).get("offer"), "signed-capability");
-    env.timers.forEach((fn) => fn());
-    await env.respond(1, { available: true, offer: "new-capability" });
-    assert.equal(env.elements.length, 1);
+    assert.equal(frame.allow, "microphone; autoplay");
+    assert.equal(frame.attributes.sandbox.includes("allow-popups"), false);
+    env.timers.forEach((fn) => fn()); assert.equal(env.requests.length, 1);
+    panel.children[0].children[1].onclick();
+    assert.equal(panel.hidden, true); assert.equal(launcher.hidden, false);
+    assert.equal(env.document.activeElement, launcher);
+    launcher.onclick(); assert.equal(panel.hidden, false);
+    for (const fn of env.messages) {
+      fn({origin:"https://evil.example",source:frame.contentWindow,data:{type:"sightspool:panel:minimize"}});
+      fn({origin:"https://www.sightspool.com",source:{},data:{type:"sightspool:panel:minimize"}});
+    }
+    assert.equal(panel.hidden, false);
+    for (const fn of env.messages) fn({origin:"https://www.sightspool.com",source:frame.contentWindow,data:{type:"sightspool:panel:minimize"}});
+    assert.equal(panel.hidden, true);
+    sdk.identify(null); sdk.pause(); sdk.destroy();
+    env.document.visibilityState = "hidden"; env.visibility.forEach((fn) => fn());
+    sdk.init({ audience: "all_visitors", key: "22222222-2222-4222-8222-222222222222" });
+    assert.equal(env.elements.length, 2); assert.equal(panel.children[1], frame);
+    launcher.onclick(); assert.equal(panel.hidden, false);
+    assert.equal(frame.src, url.href); assert.equal(env.requests.length, 1);
   });
 });
 

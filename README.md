@@ -15,7 +15,7 @@ inspect the [public source](https://github.com/sightspool/sdk), or try the
 ## npm
 
 ```sh
-npm install --save-exact @sightspool/sdk@0.4.0
+npm install --save-exact @sightspool/sdk@0.4.1
 ```
 
 ```ts
@@ -160,3 +160,24 @@ The npm and browser builds share `src/research.ts`. The Sightspool app copies
 `sdk.global.js` from this package and serves `research-widget.js` as a byte-identical
 alias for recent internal snippets. Neither build imports the former capture engine.
 See `docs/research-sdk-transition.md` for release sequencing. Apache-2.0.
+
+## Embedded interview panel (0.4.1, local candidate)
+
+An available invitation opens one bottom-right panel on the product page. Consent,
+waiting, supported founder audio or Sightspool text conversation, and completion
+remain inside its isolated Sightspool iframe. Minimize or Escape hides the panel;
+Return to interview reopens the same session. Minimize does not mute, end or withdraw.
+Use the explicit in-panel controls to stop audio or delete interview evidence.
+
+Allow the configured Sightspool origin in your site's `frame-src` policy and
+permit microphone delegation to that origin if founder audio is used. Preserve
+other CSP and Permissions Policy restrictions; a host policy may intentionally
+block audio. The iframe requests a microphone only after explicit participant action.
+The frame is restricted to the workspace's saved product origin and exchanges only
+a minimize message with its parent, never interview text or audio. There is no popup.
+
+Once opened, the panel stays mounted across visibility changes, pause, identity
+changes and SDK destroy/remount, so recruitment cleanup cannot silently end a call.
+Destroy stops further recruitment. The active panel remains reachable until the
+page is left; a full page navigation may interrupt audio. Minimize preserves the
+session only within the current document.

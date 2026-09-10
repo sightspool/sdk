@@ -13,7 +13,8 @@ export type ResearchStatus =
 type Runtime = {
   key: string; endpoint: string; audience: SightspoolConfig["audience"]; identified: boolean; paused: boolean;
   disposed: boolean; generation: number; device: string; offer: string | null;
-  button: HTMLButtonElement | null; popup: Window | null;
+  button: HTMLButtonElement | null; panel: HTMLElement | null; frame: HTMLIFrameElement | null;
+  expanded: boolean; message: ((event: MessageEvent) => void) | null;
   pending: AbortController | null; timer: number; visibility: () => void;
   status: ResearchStatus;
 };
@@ -24,6 +25,8 @@ const current = () => host()?.[slot];
 const eligible = (r: Runtime) => r.audience === "all_visitors" || r.identified;
 
 function remove(r: Runtime) {
+  // An opened interview owns its lifetime. Recruitment changes cannot end it.
+  if (r.frame) return;
   r.button?.remove(); r.button = null; r.offer = null;
 }
 function invalidate(r: Runtime) {
@@ -31,8 +34,65 @@ function invalidate(r: Runtime) {
 }
 function status(r: Runtime, value: ResearchStatus) { r.status = value; }
 
+function expand(r: Runtime, expanded: boolean) {
+  if (!r.panel || !r.frame || !r.button) return;
+  r.expanded = expanded;
+  r.panel.hidden = !expanded;
+  r.button.hidden = expanded;
+  r.button.setAttribute("aria-expanded", String(expanded));
+  if (expanded) {
+    r.panel.querySelector<HTMLButtonElement>("button")?.focus();
+  } else r.button.focus();
+}
+function openPanel(r: Runtime) {
+  if (r.frame) { expand(r, true); return; }
+  if (!r.offer || !r.button) return;
+  const panel = document.createElement("section");
+  panel.id = "sightspool-interview-panel";
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-label", "Sightspool interview");
+  panel.style.cssText = "position:fixed;bottom:16px;right:16px;z-index:2147483001;width:420px;max-width:calc(100vw - 32px);height:680px;max-height:calc(100dvh - 32px);border:1px solid #e6dfe3;border-radius:20px;background:#fff;color:#262024;box-shadow:0 12px 50px #0003;overflow:hidden;font:14px system-ui;display:flex;flex-direction:column";
+  // Explicit hidden styling beats the inline flex rule without removing the frame.
+  const setHidden = () => { panel.style.display = panel.hidden ? "none" : "flex"; };
+  const header = document.createElement("div");
+  header.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;flex-shrink:0";
+  const title = document.createElement("strong"); title.textContent = "Sightspool";
+  const minimize = document.createElement("button");
+  minimize.type = "button"; minimize.textContent = "Minimize";
+  minimize.style.cssText = "font:inherit;color:inherit;background:#fff;border:1px solid #d6cbd1;border-radius:8px;padding:8px 12px;cursor:pointer";
+  const hide = () => { expand(r, false); setHidden(); };
+  minimize.onclick = hide;
+  header.appendChild(title); header.appendChild(minimize); panel.appendChild(header);
+  const frame = document.createElement("iframe");
+  frame.title = "Sightspool research conversation";
+  frame.allow = "microphone; autoplay";
+  frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
+  frame.referrerPolicy = "no-referrer";
+  frame.style.cssText = "display:block;width:100%;flex:1;min-height:0;border:0;background:#fff";
+  const url = new URL(r.endpoint + "/interview-widget");
+  url.searchParams.set("key", r.key);
+  url.hash = new URLSearchParams({ offer: r.offer, device: r.device }).toString();
+  frame.src = url.href;
+  panel.appendChild(frame);
+  panel.onkeydown = (event) => { if (event.key === "Escape") { event.preventDefault(); hide(); } };
+  r.panel = panel; r.frame = frame;
+  r.message = (event) => {
+    // Only this exact embedded document may control its presentation. No interview
+    // content, capabilities or account data cross the parent messaging boundary.
+    if (event.source !== frame.contentWindow || event.origin !== r.endpoint || event.data?.type !== "sightspool:panel:minimize") return;
+    hide();
+  };
+  window.addEventListener("message", r.message);
+  r.button.textContent = "Return to interview";
+  r.button.setAttribute("aria-label", "Sightspool: return to your interview");
+  r.button.setAttribute("aria-controls", panel.id);
+  r.button.onclick = () => { expand(r, true); setHidden(); };
+  document.body.appendChild(panel);
+  expand(r, true);
+}
+
 async function check(r: Runtime) {
-  if (r.disposed || r.paused || !eligible(r) || r.pending || document.visibilityState !== "visible") return;
+  if (r.frame || r.disposed || r.paused || !eligible(r) || r.pending || document.visibilityState !== "visible") return;
   const generation = r.generation;
   const request = new AbortController();
   r.pending = request;
@@ -56,16 +116,14 @@ async function check(r: Runtime) {
     if (r.button) return;
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = "Talk to the founder · 5 min";
+    button.textContent = "Share your experience · 5 min";
     button.setAttribute("aria-label", "Sightspool: join a five-minute user interview");
-    button.style.cssText = "position:fixed;bottom:20px;right:20px;z-index:2147483000;padding:14px 18px;border:0;border-radius:16px;background:#171717;color:white;font:500 14px system-ui;box-shadow:0 8px 30px #0003;cursor:pointer;max-width:calc(100vw - 40px)";
+    button.style.cssText = "position:fixed;bottom:20px;right:20px;z-index:2147483000;padding:14px 18px;border:0;border-radius:999px;background:#ad1668;color:white;font:500 14px system-ui;box-shadow:0 8px 30px #0003;cursor:pointer;max-width:calc(100vw - 40px)";
     button.onclick = () => {
       try {
         if (r.disposed || r.paused || !eligible(r) || !r.offer) return;
-        if (r.popup && !r.popup.closed) { r.popup.focus(); return; }
-        const hash = new URLSearchParams({ offer: r.offer, device: r.device });
-        r.popup = window.open(r.endpoint + "/interview-widget#" + hash, "sightspool-interview", "popup,width=520,height=760");
-      } catch { /* Host pages remain usable if popups are blocked. */ }
+        openPanel(r);
+      } catch { /* Host pages remain usable if embedding is blocked. */ }
     };
     r.button = button;
     document.body.appendChild(button);
@@ -88,6 +146,8 @@ export function init(config: SightspoolConfig): void {
     if (url.username || url.password) return;
     const previous = current();
     if (previous && previous.key === config.key && previous.endpoint === url.origin && previous.audience === config.audience) return;
+    // A second loader/workspace must not replace a participant's open interview.
+    if (previous?.frame) return;
     if (previous) destroy();
     let device = "";
     try { device = sessionStorage.getItem("sightspool-widget-device:" + config.key) || ""; } catch {}
@@ -99,7 +159,7 @@ export function init(config: SightspoolConfig): void {
     const r: Runtime = {
       key: config.key, endpoint: url.origin, audience: config.audience, identified: false, paused: false,
       disposed: false, generation: 0, device, offer: null, button: null,
-      popup: null, pending: null, timer: 0, visibility: () => {}, status: "signed_out",
+      panel: null, frame: null, expanded: false, message: null, pending: null, timer: 0, visibility: () => {}, status: "signed_out",
     };
     browser[slot] = r;
     r.visibility = () => {
@@ -141,7 +201,9 @@ export function destroy(): void {
     r.disposed = true; invalidate(r);
     window.clearInterval(r.timer);
     document.removeEventListener("visibilitychange", r.visibility);
-    delete host()![slot];
+    // Keep the session panel and its launcher reachable until the page is left.
+    // Minimize is presentation only; end/withdraw remain explicit inside the frame.
+    if (!r.frame) delete host()![slot];
   } catch {}
 }
 export function getStatus(): ResearchStatus {

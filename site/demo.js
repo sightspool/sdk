@@ -14,7 +14,16 @@
       document.getElementById('summary').textContent=`${count} simulated offer requests · test user ID in payload: ${identityLeaked?'YES':'no'}`;
       return new Response(JSON.stringify({available:true,offer:'synthetic-demo-not-a-valid-offer'}),{headers:{'Content-Type':'application/json'}});
     };
-    window.open=()=>{show('SIMULATED HANDOFF: the real flow opens consent and eligibility review. No interview opened.');return null;};
+    // A synthetic offer must never load the actual interview service.
+    const createElement=document.createElement.bind(document);
+    document.createElement=(tag,...args)=>{
+      const el=createElement(tag,...args);
+      if(tag.toLowerCase()==='iframe') Object.defineProperty(el,'src',{set(){
+        el.srcdoc='<main style="font:16px system-ui;padding:24px"><h1>Simulated interview panel</h1><p>The real panel contains eligibility, consent and your interview. No interview, microphone or research request is started in this demo.</p></main>';
+        show('SIMULATED PANEL: minimize and reopen keep the same frame. No interview started.');
+      }});
+      return el;
+    };
     const script=document.createElement('script');script.src=manifest.bundle.path;script.integrity=manifest.bundle.integrity;script.crossOrigin='anonymous';script.referrerPolicy='no-referrer';
     await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=()=>reject(Error('Bundle failed to load or integrity did not match'));document.body.appendChild(script);});
     const sdk=window.Sightspool;
