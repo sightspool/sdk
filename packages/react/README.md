@@ -28,7 +28,9 @@ Effects support SSR and React Strict Mode.
 use one authoritative identity source to avoid competing updates.
 
 Old capture traits and the cookie-consent API are no longer part of this package.
-The browser retains only whether a user ID is present; the user ID is not sent.
+From SDK 0.5.0 the user ID you pass is sent to your own workspace's Sightspool
+endpoint on the offer request, where it is hashed workspace-scoped; it is held in
+memory only and never stored raw. Earlier versions never transmitted it.
 Consent and interviews remain in Sightspool's approved research flow.
 
 `audience` is required: `all_visitors` includes anonymous visitors without an identity;

@@ -9,8 +9,11 @@ are archived under docs/legacy and are not shipped in dist.
 
 The research SDK supports anonymous visitors and signed-in users with explicit audience selection, approved-offer polling and the
 launcher. Consent, recording, interviews, analysis and owner approval remain in
-the existing Sightspool application. identify retains only a boolean; identifiers,
-traits, DOM content, URLs and auth tokens are not sent. Polling is single-flight,
+the existing Sightspool application. From 0.5.0 identify sends the id you pass to
+your own workspace's Sightspool endpoint on the offer request, where it is hashed
+workspace-scoped; the SDK keeps it in memory only and it is never stored raw. This
+narrows 0.4.0's promise that the identifier was never transmitted. Traits, DOM
+content, URLs and auth tokens are still not sent. Polling is single-flight,
 requests abort on identity changes/pause/destroy, and stale responses cannot restore UI.
 Destroying the SDK stops recruitment but does not silently end an interview the
 participant has already opened.
@@ -21,7 +24,7 @@ recruitment; all_visitors refreshes as a guest. This does not change the approve
 cohort or prove participant eligibility. Old pk_live keys are rejected. The
 separate capture-localhost, telemetry traits and cookie-consent controls are not
 part of the new API. pause/resume control recruitment, never recording consent.
-React 0.2.0 peers with SDK >=0.4.0 <0.5.0 and follows the same audience semantics, with
+React 0.2.0 peers with SDK >=0.4.0 <0.6.0 and follows the same audience semantics, with
 effect cleanup for unmount and Strict Mode. Use one provider per document.
 
 The application serves sdk.global.js from this package. research-widget.js is

@@ -7,6 +7,6 @@ test("signed-out or blank identity clears research eligibility", () => {
     assert.equal(researchUserId(value), null);
   }
 });
-test("real user identity is forwarded locally without enrichment", () => {
+test("real user identity is forwarded to the SDK unchanged, without enrichment", () => {
   assert.equal(researchUserId({ userId: "user-123" }), "user-123");
 });

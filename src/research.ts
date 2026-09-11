@@ -14,7 +14,7 @@ export type ResearchStatus =
 
 type Runtime = {
   theme: "light" | "dark" | "auto";
-  key: string; endpoint: string; audience: SightspoolConfig["audience"]; identified: boolean; paused: boolean;
+  key: string; endpoint: string; audience: SightspoolConfig["audience"]; identity: string | null; paused: boolean;
   disposed: boolean; generation: number; device: string; offer: string | null;
   button: HTMLButtonElement | null; panel: HTMLElement | null; frame: HTMLIFrameElement | null;
   attention: boolean; dismissed: boolean; completed: boolean; restoring: boolean; copy: {title:string;subtitle:string}; shell: HTMLElement | null; dismiss: HTMLButtonElement | null;
@@ -22,13 +22,17 @@ type Runtime = {
   pending: AbortController | null; timer: number; visibility: () => void;
   status: ResearchStatus;
 };
+// The server accepts a trimmed, non-empty id of at most this length
+// (apps/web/lib/cohortIdentity.ts). Trimming before the bound is applied keeps
+// both sides agreeing on exactly which ids are valid.
+const MAX_IDENTITY_LENGTH = 200;
 const slot = Symbol.for("sightspool.research.runtime.v1");
 type Host = Window & { [slot]?: Runtime };
 const host = (): Host | null => typeof window === "undefined" ? null : window as Host;
 const current = () => host()?.[slot];
 const markerKey = (r: Runtime) => "sightspool-widget-session:" + r.key;
 function saveMarker(r: Runtime, value: string) { try { sessionStorage.setItem(markerKey(r), value); } catch {} }
-const eligible = (r: Runtime) => r.audience === "all_visitors" || r.identified;
+const eligible = (r: Runtime) => r.audience === "all_visitors" || r.identity !== null;
 
 function remove(r: Runtime) {
   // An opened interview owns its lifetime. Recruitment changes cannot end it.
@@ -170,11 +174,17 @@ async function check(r: Runtime) {
   r.pending = request;
   const timeout = window.setTimeout(() => request.abort(), 10_000);
   if (!r.button) status(r, "checking");
+  // Only the offer call carries the identity. The interview page is served by
+  // Sightspool itself and is handed nothing but the offer and device, so the
+  // cohort decision is frozen into the signed offer instead (SIG-122 §10).
+  const payload: { operation: string; key: string; device: string; identity?: string } =
+    { operation: "offer", key: r.key, device: r.device };
+  if (r.identity) payload.identity = r.identity;
   try {
     const response = await fetch(r.endpoint + "/widget-offer", {
       method: "POST", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ operation: "offer", key: r.key, device: r.device }),
+      body: JSON.stringify(payload),
       signal: request.signal,
     });
     if (!response.ok) throw Error("offer unavailable");
@@ -220,7 +230,7 @@ export function init(config: SightspoolConfig): void {
     }
     const r: Runtime = {
       theme: config.theme === "light" || config.theme === "auto" ? config.theme : "dark",
-      key: config.key, endpoint: url.origin, audience: config.audience, identified: false, paused: false,
+      key: config.key, endpoint: url.origin, audience: config.audience, identity: null, paused: false,
       attention: true, dismissed: false, completed: false, restoring: false, copy:{title:"Share your experience",subtitle:"A research conversation"}, shell:null,dismiss:null,
       disposed: false, generation: 0, device, offer: null, button: null,
       panel: null, frame: null, expanded: false, message: null, pending: null, timer: 0, visibility: () => {}, status: "signed_out",
@@ -245,15 +255,33 @@ export function init(config: SightspoolConfig): void {
   } catch { /* Never throw into the host application. */ }
 }
 
-/** Only the presence of an ID is retained. The ID itself is never stored or sent. */
+/**
+ * Identify the signed-in user, and carry that id to the offer request so a
+ * cohort-gated research card can tell whether this person is in its cohort.
+ *
+ * The id is held in memory for the page's lifetime and sent, over TLS, only to
+ * this workspace's own Sightspool endpoint, only on `operation: "offer"`. It is
+ * hashed workspace-scoped on arrival and never stored raw in any table, log or
+ * payload. The SDK never writes it to sessionStorage, localStorage, a cookie, a
+ * URL, a fragment or a log.
+ *
+ * `null` clears it, as does any value that is not a non-empty string of at most
+ * 200 characters after trimming. An over-length id is never truncated: a
+ * truncated id is a different person, and on a gated card that invites the
+ * wrong one. Failing as unidentified is the safe direction.
+ */
 export function identify(userId: string | null | undefined): void {
   try {
     const r = current();
     if (!r) return;
-    const identified = typeof userId === "string" && userId.trim().length > 0;
-    if (!identified && !r.identified) { if (!r.paused && eligible(r)) void check(r); return; }
+    const trimmed = typeof userId === "string" ? userId.trim() : "";
+    const identity = trimmed.length > 0 && trimmed.length <= MAX_IDENTITY_LENGTH ? trimmed : null;
+    // Re-stating the same person leaves their live invitation alone. Any change,
+    // including to unidentified, takes the previous person's pending check and
+    // minted offer with it, so an account switch never inherits an invitation.
+    if (identity === r.identity) { if (!r.paused && eligible(r)) void check(r); return; }
     invalidate(r);
-    r.identified = identified;
+    r.identity = identity;
     status(r, r.paused ? "paused" : eligible(r) ? "unavailable" : "signed_out");
     if (eligible(r) && !r.paused) void check(r);
   } catch {}

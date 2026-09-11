@@ -38,9 +38,28 @@ Choose an explicit `audience` matching the approved interview plan:
 - `signed_in`: only users with a real signed-in session. Initialize in your authenticated app shell and call `identify(actualUserId)` after authentication resolves. Until then, no request or invitation is made. `identify(null)` immediately removes invitations on logout.
 
 There is no default audience. Missing or invalid audience configuration stays idle.
-`identify` retains only whether an ID is present; the ID itself is not stored or
-transmitted. Do not invent IDs for visitors. This client setting controls display;
-it does not authenticate a participant or change the server-approved research cohort.
+
+`identify` sends the id you pass, over TLS, to your own workspace's Sightspool
+endpoint, on the offer request only. Sightspool hashes it workspace-scoped on
+arrival and never stores it raw in any table, log or payload. The SDK holds it in
+memory for the page's lifetime and never writes it to storage, a cookie, a URL, a
+fragment or a log. **Through 0.4.2 the id was never transmitted; from 0.5.0 it
+is** — it is what lets a cohort-targeted card tell whether you are one of the
+people its research question is about. Do not invent IDs for visitors. This client
+setting controls display; it does not authenticate a participant or change the
+server-approved research cohort.
+
+An id that is not a non-empty string of at most 200 characters after trimming is
+treated as unidentified, exactly like `identify(null)`. Over-length ids are never
+truncated: a truncated id is a different person.
+
+## Matching your analytics identity
+
+Cohort-targeted cards match against journey cohorts derived from PostHog. Your
+product **must call `posthog.identify()` with the same id it passes Sightspool.**
+If you identify PostHog with an email and Sightspool with an internal UUID, those
+are different identities that never meet — the match rate is a flat zero that
+looks exactly like an empty cohort rather than like a misconfiguration.
 
 ## Script tag
 
@@ -83,7 +102,7 @@ CDN or self-hosted install. npm defaults to `https://www.sightspool.com`.
 | Method | Behavior |
 | --- | --- |
 | `init({ key, audience, endpoint? })` | Start research for the explicit audience; UUID key required. Repeating the same configuration is idempotent. Changing it tears down the previous runtime. |
-| `identify(userId)` | Enable signed-in eligibility; only its boolean presence stays locally. `null` clears it; signed-in-only invitations disappear, all-visitors recruitment continues. |
+| `identify(userId)` | Enable signed-in eligibility, and send that id on the offer request so a cohort-targeted card can match it. Held in memory only, never stored. `null` clears it — as does any value that is not a non-empty string of at most 200 characters after trimming. Signed-in-only invitations disappear; all-visitors recruitment continues. |
 | `pause()` | Pause recruitment, abort the current request and remove the launcher. |
 | `resume()` | Resume recruitment for the configured audience. Does not bypass approval or hours. |
 | `destroy()` | Remove the launcher, listeners and polling. An already opened interview is not silently ended. |

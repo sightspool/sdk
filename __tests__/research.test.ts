@@ -65,7 +65,7 @@ function browser() {
   return { window, document, fetch, sessionStorage, requests, elements, timers, visibility, storage, popups, messages, respond };
 }
 
-test("research is idle before sign-in and sends no user identity, page data or capture requests", async () => {
+test("research is idle before sign-in, then sends the identity and nothing else", async () => {
   await browserTest(async (env) => {
     sdk.init({ audience: "signed_in", key, endpoint: "https://research.example" });
     assert.equal(sdk.getStatus(), "signed_out");
@@ -75,10 +75,14 @@ test("research is idle before sign-in and sends no user identity, page data or c
     assert.equal(env.requests.length, 1);
     assert.equal(env.requests[0].url, "https://research.example/widget-offer");
     const body = JSON.parse(env.requests[0].input.body as string);
-    assert.deepEqual(Object.keys(body).sort(), ["device", "key", "operation"]);
+    // From 0.5.0 the id is sent (SIG-122), and still nothing else: no page data,
+    // no URL, no traits, no capture payload.
+    assert.deepEqual(Object.keys(body).sort(), ["device", "identity", "key", "operation"]);
+    assert.equal(body.identity, "private-user@example.com");
     assert.match(body.device, /^ss_fcd_[A-Za-z0-9_-]{43}$/);
     assert.equal(env.requests[0].input.credentials, "omit");
     assert.equal(env.requests[0].input.referrerPolicy, "no-referrer");
+    // Sent to the workspace's own endpoint, never persisted anywhere.
     assert.equal(JSON.stringify([...env.storage]).includes("private-user"), false);
     await env.respond(0, { available: false, offer: null });
     assert.equal(sdk.getStatus(), "unavailable");
@@ -189,7 +193,13 @@ test("all-visitors research works anonymously and remains eligible after logout"
     sdk.init({ key, audience: "signed_in" });
     assert.equal(env.elements.length, 0); assert.equal(sdk.getStatus(), "signed_out");
     assert.equal(env.timers.size, 1);
-    for (const request of env.requests) assert.deepEqual(Object.keys(JSON.parse(request.input.body as string)).sort(), ["device", "key", "operation"]);
+    // Only the call made while a user was identified carries an identity; the
+    // guest calls before and after are byte-identical to the pre-0.5.0 payload.
+    env.requests.forEach((request, index) => {
+      const body = JSON.parse(request.input.body as string);
+      assert.deepEqual(Object.keys(body).sort(), index === 1 ? ["device", "identity", "key", "operation"] : ["device", "key", "operation"]);
+      assert.equal(body.identity, index === 1 ? "signed-in-user" : undefined);
+    });
   });
 });
 
@@ -236,4 +246,125 @@ test("reload restores an admitted session without a new offer or microphone acti
   assert.equal(new URLSearchParams(url.hash.slice(1)).has("offer"),false);
   assert.equal(env.requests.length,0);
  });
+});
+
+// SIG-122 — identity on the offer call. From 0.5.0 identify() sends the id it is
+// given; these tests are what keeps the narrowed promise honest.
+const identityOf = (request: { input: RequestInit }) => JSON.parse(request.input.body as string).identity;
+
+test("an identified visitor carries the id on the offer call and nowhere else", async () => {
+  await browserTest(async (env) => {
+    sdk.init({ audience: "signed_in", key, endpoint: "https://research.example" });
+    sdk.identify("  person-one  ");
+    assert.equal(env.requests.length, 1);
+    const body = JSON.parse(env.requests[0].input.body as string);
+    assert.deepEqual(Object.keys(body).sort(), ["device", "identity", "key", "operation"]);
+    assert.equal(body.identity, "person-one");
+    assert.equal(env.requests[0].input.credentials, "omit");
+    assert.equal(env.requests[0].input.referrerPolicy, "no-referrer");
+    assert.equal(env.requests[0].url.includes("person-one"), false);
+    await env.respond(0, { available: true, offer: "capability" });
+    assert.equal(JSON.stringify([...env.storage]).includes("person-one"), false);
+    env.elements[0].onclick();
+    const src = env.elements[1].children[1].src;
+    assert.equal(src.includes("person-one"), false);
+    assert.equal(new URL(src).hash.includes("person-one"), false);
+  });
+});
+
+test("switching accounts never inherits the previous person's invitation", async () => {
+  await browserTest(async (env) => {
+    sdk.init({ audience: "signed_in", key });
+    sdk.identify("person-one");
+    assert.equal(env.requests.length, 1);
+    sdk.identify("person-two");
+    assert.equal(env.requests[0].input.signal?.aborted, true);
+    assert.equal(env.requests.length, 2);
+    assert.equal(identityOf(env.requests[1]), "person-two");
+    await env.respond(0, { available: true, offer: "offer-for-one" });
+    assert.equal(env.elements.length, 0);
+    await env.respond(1, { available: true, offer: "offer-for-two" });
+    assert.equal(env.elements.length, 1);
+    // Re-identifying the same person leaves their live invitation alone.
+    sdk.identify("person-two");
+    assert.equal(env.elements.length, 1);
+    // A third account takes the minted offer with it.
+    sdk.identify("person-three");
+    assert.equal(env.elements.length, 0);
+    assert.equal(identityOf(env.requests.at(-1)!), "person-three");
+  });
+});
+
+test("identify(null) stops sending the id and clears signed-in eligibility", async () => {
+  await browserTest(async (env) => {
+    sdk.init({ audience: "signed_in", key });
+    sdk.identify("person-one");
+    await env.respond(0, { available: true, offer: "capability" });
+    assert.equal(env.elements.length, 1);
+    sdk.identify(null);
+    assert.equal(env.elements.length, 0);
+    assert.equal(sdk.getStatus(), "signed_out");
+    env.timers.forEach((fn) => fn());
+    assert.equal(env.requests.length, 1);
+  });
+});
+
+test("all_visitors with no identify call offers exactly as before", async () => {
+  await browserTest(async (env) => {
+    sdk.init({ key, audience: "all_visitors" });
+    assert.equal(env.requests.length, 1);
+    assert.deepEqual(Object.keys(JSON.parse(env.requests[0].input.body as string)).sort(), ["device", "key", "operation"]);
+    await env.respond(0, { available: true, offer: "guest-offer" });
+    assert.equal(env.elements.length, 1);
+    assert.equal(sdk.getStatus(), "available");
+    sdk.identify("guest-turned-member");
+    assert.equal(identityOf(env.requests[1]), "guest-turned-member");
+    await env.respond(1, { available: true, offer: "member-offer" });
+    sdk.identify(null);
+    assert.deepEqual(Object.keys(JSON.parse(env.requests[2].input.body as string)).sort(), ["device", "key", "operation"]);
+    await env.respond(2, { available: true, offer: "guest-again" });
+    assert.equal(env.elements.length, 1);
+  });
+});
+
+test("an over-length or non-string id is unidentified, never truncated", async () => {
+  await browserTest(async (env) => {
+    const long = "u".repeat(201);
+    sdk.init({ audience: "signed_in", key });
+    sdk.identify(long);
+    assert.equal(env.requests.length, 0);
+    assert.equal(sdk.getStatus(), "signed_out");
+    // 200 is the server's own bound, and trimming happens before it is applied.
+    sdk.identify("u".repeat(200));
+    assert.equal(identityOf(env.requests[0]).length, 200);
+    await env.respond(0, { available: true, offer: "capability" });
+    assert.equal(env.elements.length, 1);
+    sdk.identify(" ".repeat(20) + "v".repeat(195) + " ".repeat(20));
+    assert.equal(identityOf(env.requests[1]).length, 195);
+    await env.respond(1, { available: true, offer: "capability" });
+    // An over-length id fails as unidentified, never as the previous person:
+    // their invitation leaves with them.
+    sdk.identify(long);
+    assert.equal(env.elements.length, 0);
+    assert.equal(sdk.getStatus(), "signed_out");
+    for (const value of [42, {}, [], true, "", "   ", null, undefined]) {
+      sdk.identify(value as any);
+      assert.equal(sdk.getStatus(), "signed_out");
+    }
+    assert.equal(env.requests.length, 2);
+  });
+});
+
+test("identity paths never throw into the host", async () => {
+  await browserTest(async (env) => {
+    sdk.init({ audience: "signed_in", key });
+    for (const value of ["person", null, undefined, 42, {}, [], true, "x".repeat(500), "", "  ", Symbol("s")]) {
+      assert.doesNotThrow(() => sdk.identify(value as any));
+    }
+    sdk.identify("person");
+    env.requests.at(-1)!.reject(Error("network down"));
+    await tick();
+    assert.equal(sdk.getStatus(), "error");
+    assert.doesNotThrow(() => { sdk.pause(); sdk.resume(); sdk.identify("person-again"); sdk.destroy(); });
+  });
 });
