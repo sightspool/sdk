@@ -1,6 +1,6 @@
 {
   "name": "@sightspool/sdk",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Sightspool research SDK \u2014 invite website visitors and signed-in users into approved user research.",
   "type": "module",
   "main": "./dist/index.cjs",

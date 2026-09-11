@@ -161,7 +161,7 @@ The npm and browser builds share `src/research.ts`. The Sightspool app copies
 alias for recent internal snippets. Neither build imports the former capture engine.
 See `docs/research-sdk-transition.md` for release sequencing. Apache-2.0.
 
-## Embedded interview panel (0.4.1, local candidate)
+## Embedded interview panel (0.4.2, local candidate)
 
 An available invitation opens one bottom-right panel on the product page. Consent,
 waiting, supported founder audio or Sightspool text conversation, and completion
@@ -174,10 +174,26 @@ permit microphone delegation to that origin if founder audio is used. Preserve
 other CSP and Permissions Policy restrictions; a host policy may intentionally
 block audio. The iframe requests a microphone only after explicit participant action.
 The frame is restricted to the workspace's saved product origin and exchanges only
-a minimize message with its parent, never interview text or audio. There is no popup.
+presentation and accepted/ended lifecycle messages with its parent, never interview text, capabilities or audio. Interviews stay in the panel. Privacy and Sightspool attribution links open a separate tab.
 
 Once opened, the panel stays mounted across visibility changes, pause, identity
 changes and SDK destroy/remount, so recruitment cleanup cannot silently end a call.
 Destroy stops further recruitment. The active panel remains reachable until the
-page is left; a full page navigation may interrupt audio. Minimize preserves the
-session only within the current document.
+page is left. A full document navigation interrupts media. A tab-scoped marker
+restores the saved interview after reload; the app validates the saved capability
+and a participant must explicitly resume before enabling a microphone. This does
+not promise uninterrupted audio or a founder-phone reconnect grace period.
+
+The launcher uses the approved invitation duration and thank-you label supplied by
+Sightspool. Dismissal leaves a small logo button: the first click restores the
+message and the second opens the interview. After completion or early stopping,
+the small checked button opens the accepted thank-you receipt directly. The app
+minimises after eight seconds once it is safe to close the recording UI. Claim
+instructions come from the frozen interview terms; the SDK issues no rewards.
+Tab restoration supplements the server's contact and capacity rules.
+
+Placement is bottom-right on desktop and bottom-centre up to 560px, with safe-area
+spacing and reduced-motion support. Set `theme: "light" | "dark" | "auto"` in
+`init()` or `data-sightspool-theme` on a script installation; the default is dark.
+Another bottom-right customer widget may require coordinated placement; configurable
+offsets are not supplied by this candidate.

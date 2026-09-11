@@ -7,7 +7,8 @@ try {
   const key = script?.dataset.sightspoolKey || script?.dataset.key;
   const audience = script?.dataset.sightspoolAudience;
   if (key && (audience === "all_visitors" || audience === "signed_in")) {
-    api.init({ key, audience, endpoint: script?.dataset.sightspoolEndpoint || new URL(script!.src).origin });
+    const theme = script?.dataset.sightspoolTheme;
+    api.init({ key, audience, theme: theme === "light" || theme === "auto" ? theme : "dark", endpoint: script?.dataset.sightspoolEndpoint || new URL(script!.src).origin });
     if (script?.dataset.userId) api.identify(script.dataset.userId);
   }
   // The old research-widget URL is an alias of this bundle, not another runtime.

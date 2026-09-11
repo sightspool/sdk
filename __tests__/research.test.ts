@@ -22,7 +22,12 @@ async function browserTest(run: (env: ReturnType<typeof browser>) => Promise<voi
 }
 function browser() {
   const requests: { url: string; input: RequestInit; resolve: (response: any) => void; reject: (error: Error) => void }[] = [];
-  const elements: any[] = [];
+  const roots: any[] = [];
+  function flatten(nodes: any[]): any[] {return nodes.flatMap(node=>[node,...flatten(node.children)]);}
+  const elements = new Proxy([] as any[], {get(_target,prop){
+    const values=flatten(roots).filter(el=>el.className?.split(" ").includes("ss-launcher") || el.className === "ss-panel");
+    return Reflect.get(values,prop);
+  }});
   const timers = new Map<number, () => void>();
   const visibility = new Set<() => void>();
   const storage = new Map<string, string>();
@@ -42,13 +47,15 @@ function browser() {
     createElement(tag: string) {
       const el: any = { tag, children: [], attributes: {}, style: {}, hidden: false, contentWindow: {},
         appendChild(child: any) { this.children.push(child); },
+        replaceChildren() { this.children=[]; },
+        contains(node: any) {return flatten([el]).includes(node);},
         focus() { document.activeElement = el; },
         querySelector() { return this.children[0]?.children.find((c: any) => c.tag === "button"); },
         setAttribute(k: string, v: string) { this.attributes[k] = v; },
-        remove() { const i = elements.indexOf(el); if (i >= 0) elements.splice(i, 1); } };
+        remove() { const i = roots.indexOf(el); if (i >= 0) roots.splice(i, 1); } };
       return el;
     },
-    body: { appendChild(el: any) { elements.push(el); } },
+    body: { appendChild(el: any) { roots.push(el); } },
     addEventListener(name: string, listener: () => void) { assert.equal(name, "visibilitychange"); visibility.add(listener); },
     removeEventListener(_name: string, listener: () => void) { visibility.delete(listener); },
   };
@@ -93,25 +100,25 @@ test("one approved offer opens an embedded session; minimize and recruitment cha
     assert.equal(url.searchParams.get("key"), key);
     assert.equal(url.search.includes("signed-capability"), false);
     assert.equal(new URLSearchParams(url.hash.slice(1)).get("offer"), "signed-capability");
-    assert.equal(frame.allow, "microphone; autoplay");
-    assert.equal(frame.attributes.sandbox.includes("allow-popups"), false);
+    assert.equal(frame.allow, "microphone; autoplay; clipboard-write");
+    assert.equal(frame.attributes.sandbox.includes("allow-popups-to-escape-sandbox"), true);
     env.timers.forEach((fn) => fn()); assert.equal(env.requests.length, 1);
     panel.children[0].children[1].onclick();
-    assert.equal(panel.hidden, true); assert.equal(launcher.hidden, false);
+    assert.equal(panel.inert, true); assert.equal(launcher.hidden, false);
     assert.equal(env.document.activeElement, launcher);
-    launcher.onclick(); assert.equal(panel.hidden, false);
+    launcher.onclick(); assert.equal(panel.inert, false);
     for (const fn of env.messages) {
       fn({origin:"https://evil.example",source:frame.contentWindow,data:{type:"sightspool:panel:minimize"}});
       fn({origin:"https://www.sightspool.com",source:{},data:{type:"sightspool:panel:minimize"}});
     }
-    assert.equal(panel.hidden, false);
+    assert.equal(panel.inert, false);
     for (const fn of env.messages) fn({origin:"https://www.sightspool.com",source:frame.contentWindow,data:{type:"sightspool:panel:minimize"}});
-    assert.equal(panel.hidden, true);
+    assert.equal(panel.inert, true);
     sdk.identify(null); sdk.pause(); sdk.destroy();
     env.document.visibilityState = "hidden"; env.visibility.forEach((fn) => fn());
     sdk.init({ audience: "all_visitors", key: "22222222-2222-4222-8222-222222222222" });
     assert.equal(env.elements.length, 2); assert.equal(panel.children[1], frame);
-    launcher.onclick(); assert.equal(panel.hidden, false);
+    launcher.onclick(); assert.equal(panel.inert, false);
     assert.equal(frame.src, url.href); assert.equal(env.requests.length, 1);
   });
 });
@@ -192,4 +199,41 @@ test("missing or unknown audience does not silently enable visitors", async () =
     sdk.init({ key, audience: "unknown" } as any);
     assert.equal(env.requests.length, 0); assert.equal(env.timers.size, 0);
   });
+});
+
+
+test("invitation copy is text, dismissal restores before opening and receipt messages are origin bound", async () => {
+  await browserTest(async env=>{
+    sdk.init({key,audience:"all_visitors"});
+    await env.respond(0,{available:true,offer:"capability",invitation:{title:"<script>private offer</script>",subtitle:"For a 10-minute feedback chat"}});
+    const launcher=env.elements[0];
+    assert.equal(launcher.children[1].children[0].textContent,"<script>private offer</script>");
+    env.storage.set("sightspool-widget-dismissed:"+key,"1");
+    sdk.destroy(); sdk.init({key,audience:"all_visitors"});
+    await env.respond(1,{available:true,offer:"capability"});
+    const restored=env.elements[0];
+    assert.match(restored.className,/ss-iconOnly/);
+    restored.onclick();assert.equal(env.elements.length,1);assert.doesNotMatch(restored.className,/ss-iconOnly/);
+    restored.onclick();const panel=env.elements[1],frame=panel.children[1];
+    for(const listener of env.messages)listener({origin:"https://evil.example",source:frame.contentWindow,data:{type:"sightspool:interview:ended"}});
+    assert.equal(env.storage.get("sightspool-widget-session:"+key),undefined);
+    for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:{type:"sightspool:interview:ended"}});
+    assert.equal(env.storage.get("sightspool-widget-session:"+key),"ended");
+    assert.equal(restored.attributes["aria-label"],"View your accepted thank-you");
+  });
+});
+
+test("reload restores an admitted session without a new offer or microphone activation",async()=>{
+ await browserTest(async env=>{
+  env.storage.set("sightspool-widget-session:"+key,"active");
+  sdk.init({key,audience:"signed_in"});
+  assert.equal(env.requests.length,0);assert.equal(env.elements.length,1);
+  sdk.identify('returning-user');sdk.pause();sdk.resume();
+  assert.equal(env.elements.length,1);assert.equal(env.requests.length,0);
+  env.elements[0].onclick();
+  const url=new URL(env.elements[1].children[1].src);
+  assert.equal(new URLSearchParams(url.hash.slice(1)).get("restore"),"1");
+  assert.equal(new URLSearchParams(url.hash.slice(1)).has("offer"),false);
+  assert.equal(env.requests.length,0);
+ });
 });
