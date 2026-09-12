@@ -19,11 +19,6 @@ inspect the [public source](https://github.com/sightspool/sdk), or try the
 npm install --save-exact @sightspool/sdk@0.5.0
 ```
 
-0.5.0 is prepared but **not yet published**; the latest version on npm is 0.4.1,
-which does not send the identity described below. Until 0.5.0 is released, install
-0.4.1 and read this guide's `identify` behaviour as the version you are upgrading
-**to**, not the one you are running.
-
 ```ts
 import Sightspool from '@sightspool/sdk'
 
@@ -186,7 +181,7 @@ The npm and browser builds share `src/research.ts`. The Sightspool app copies
 alias for recent internal snippets. Neither build imports the former capture engine.
 See `docs/research-sdk-transition.md` for release sequencing. Apache-2.0.
 
-## Embedded interview panel (0.4.2, local candidate)
+## Embedded interview panel
 
 An available invitation opens one bottom-right panel on the product page. Consent,
 waiting, supported founder audio or Sightspool text conversation, and completion
@@ -221,4 +216,4 @@ Placement is bottom-right on desktop and bottom-centre up to 560px, with safe-ar
 spacing and reduced-motion support. Set `theme: "light" | "dark" | "auto"` in
 `init()` or `data-sightspool-theme` on a script installation; the default is dark.
 Another bottom-right customer widget may require coordinated placement; configurable
-offsets are not supplied by this candidate.
+offsets are not supplied.
