@@ -419,6 +419,7 @@ test("expired invitation refresh rechecks host identity and cannot replace an ac
     await env.respond(1,{available:true,offer:"fresh-offer"});
     assert.equal(new URLSearchParams(new URL(frame.src).hash.slice(1)).get("offer"),"fresh-offer");
     assert.equal(frame.src.includes("current-person"),false);
+    assert.ok(new URL(frame.src).searchParams.get("refresh"), "Refresh must navigate a new document, not only change its fragment");
     for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:{type:"sightspool:interview:accepted"}});
     for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:refresh});
     assert.equal(env.requests.length,2);

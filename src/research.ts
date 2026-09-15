@@ -167,7 +167,7 @@ function openPanel(r: Runtime) {
       // Recheck the current host identity/cohort, not the expired signed claim.
       void check(r,true).then(fresh=>{
         if(r.frame!==frame||r.accepted||r.restoring||r.completed)return;
-        if(fresh){url.hash=new URLSearchParams({offer:r.offer!,device:r.device}).toString();frame.src=url.href;}
+        if(fresh){url.searchParams.set("refresh",String(Date.now()));url.hash=new URLSearchParams({offer:r.offer!,device:r.device}).toString();frame.src=url.href;}
         else frame.contentWindow?.postMessage({type:"sightspool:invitation:refresh-failed"},r.endpoint);
       });
     }
