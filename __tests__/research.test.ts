@@ -368,3 +368,37 @@ test("identity paths never throw into the host", async () => {
     assert.doesNotThrow(() => { sdk.pause(); sdk.resume(); sdk.identify("person-again"); sdk.destroy(); });
   });
 });
+
+
+test("automatic audience waits for auth, follows question changes and invalidates logout offers", async () => {
+  await browserTest(async env => {
+    sdk.init({ audience: "automatic", key });
+    assert.equal(env.requests.length, 0);
+    sdk.identify(undefined);
+    assert.equal(env.requests.length, 0);
+    sdk.identify(null);
+    assert.equal(env.requests.length, 1);
+    assert.equal(JSON.parse(env.requests[0].input.body as string).installation, "automatic-v1");
+    await env.respond(0, {available:true, offer:"old-server-offer"});
+    assert.equal(env.elements.length, 0, "old server cannot widen recruitment");
+    env.timers.forEach(fn=>fn());
+    await env.respond(1, {available:true, offer:"signed-in-offer", audience:"signed_in"});
+    assert.equal(env.elements.length, 0, "anonymous state cannot receive signed-in offer");
+    env.timers.forEach(fn=>fn());
+    await env.respond(2, {available:true, offer:"public-offer", audience:"all_visitors"});
+    assert.equal(env.elements.length, 1);
+    sdk.identify("actual-user");
+    assert.equal(env.elements.length, 0);
+    await env.respond(3, {available:true, offer:"member-offer", audience:"signed_in"});
+    assert.equal(env.elements.length, 1);
+    sdk.identify(null);
+    assert.equal(env.elements.length, 0);
+    await env.respond(4, {available:false, audience:"signed_in"});
+    sdk.identify(" ");
+    env.timers.forEach(fn=>fn());
+    assert.equal(env.requests.length, 5, "invalid auth state stays idle");
+    sdk.identify(null);
+    await env.respond(5, {available:true, offer:"another-public-question", audience:"all_visitors"});
+    assert.equal(env.elements.length, 1);
+  });
+});

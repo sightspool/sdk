@@ -1,3 +1,23 @@
+# Sightspool research SDK
+
+## Automatic question audiences (0.6.0 local candidate)
+
+For a reusable installation, mount the SDK once across public and authenticated
+pages with `audience: "automatic"`. After authentication resolves call
+`identify(actualUserId)` for signed-in users or `identify(null)` for signed-out
+visitors. Use `identify(undefined)` while authentication is loading. Keep this
+in sync on login, account changes and logout. Do not default a loading state to
+null. Websites without accounts can explicitly call `identify(null)`.
+
+The endpoint chooses the active question's approved audience. Automatic mode
+adds `installation: "automatic-v1"` to the offer request. A non-empty identity
+is sent as in 0.5.0. The service records separate last-contact timestamps for
+signed-out and identified contexts; it does not collect page URLs or page text.
+The signal reports integration state, not verified identity or proof that every
+page has the widget. Older endpoints without audience support display no offers
+in automatic mode. Existing `signed_in` and `all_visitors` modes remain supported
+with their local restrictions; existing installations do not upgrade themselves.
+
 # @sightspool/sdk
 
 Embed Sightspool research in your product. The SDK invites website visitors and signed-in users into
@@ -33,7 +53,7 @@ Sightspool.identify(null)
 Sightspool.destroy()
 ```
 
-Choose an explicit `audience` matching the approved interview plan:
+Choose an explicit `audience`. New integrations should use `automatic` and synchronize auth state as described above. Legacy modes remain available:
 
 - `all_visitors`: anonymous website visitors and signed-in users. Initialize once on the relevant website pages. No identity or login is required; logout continues recruitment as a visitor.
 - `signed_in`: only users with a real signed-in session. Initialize in your authenticated app shell and call `identify(actualUserId)` after authentication resolves. Until then, no request or invitation is made. `identify(null)` immediately removes invitations on logout.
@@ -138,9 +158,10 @@ It requires SDK 0.4.x; see `packages/react/README.md`. Use one instance per docu
 
 ## Privacy and verification
 
-The offer request contains only the public workspace key, a random per-workspace
-browser-session device token, and the operation name. No user ID, traits, auth
-secrets, DOM text or page URL is included. Requests use `credentials: 'omit'`.
+The offer request contains the public workspace key, a random per-workspace
+browser-session device token, the operation name, and a real user ID when supplied.
+Automatic mode also sends `installation: "automatic-v1"`. No traits, auth
+secrets, DOM text or page URL are included. Requests use `credentials: 'omit'`.
 Offer requests explicitly suppress the Referer header; Origin and ordinary network metadata still reach the service.
 No microphone or recording starts on initialization or launcher display.
 

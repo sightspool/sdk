@@ -1,8 +1,8 @@
 export type SightspoolConfig = {
   /** Public workspace widget key from Go live (UUID, not an old pk_live key). */
   key: string;
-  /** Match the approved research audience. No default that widens recruitment. */
-  audience: "all_visitors" | "signed_in";
+  /** automatic follows the server-approved question after identify(userId or null). Legacy modes retain their local restriction. */
+  audience: "automatic" | "all_visitors" | "signed_in";
   /** Sightspool origin. Defaults to the hosted application. */
   endpoint?: string;
   /** Match the client site, or follow the visitor’s system preference. */
@@ -14,7 +14,7 @@ export type ResearchStatus =
 
 type Runtime = {
   theme: "light" | "dark" | "auto";
-  key: string; endpoint: string; audience: SightspoolConfig["audience"]; identity: string | null; paused: boolean;
+  key: string; endpoint: string; audience: SightspoolConfig["audience"]; identity: string | null; identityReady: boolean; paused: boolean;
   disposed: boolean; generation: number; device: string; offer: string | null;
   button: HTMLButtonElement | null; panel: HTMLElement | null; frame: HTMLIFrameElement | null;
   attention: boolean; dismissed: boolean; completed: boolean; restoring: boolean; copy: {title:string;subtitle:string}; shell: HTMLElement | null; dismiss: HTMLButtonElement | null;
@@ -32,7 +32,7 @@ const host = (): Host | null => typeof window === "undefined" ? null : window as
 const current = () => host()?.[slot];
 const markerKey = (r: Runtime) => "sightspool-widget-session:" + r.key;
 function saveMarker(r: Runtime, value: string) { try { sessionStorage.setItem(markerKey(r), value); } catch {} }
-const eligible = (r: Runtime) => r.audience === "all_visitors" || r.identity !== null;
+const eligible = (r: Runtime) => r.audience === "automatic" ? r.identityReady : r.audience === "all_visitors" || r.identity !== null;
 
 function remove(r: Runtime) {
   // An opened interview owns its lifetime. Recruitment changes cannot end it.
@@ -177,9 +177,10 @@ async function check(r: Runtime) {
   // Only the offer call carries the identity. The interview page is served by
   // Sightspool itself and is handed nothing but the offer and device, so the
   // cohort decision is frozen into the signed offer instead (SIG-122 §10).
-  const payload: { operation: string; key: string; device: string; identity?: string } =
+  const payload: { operation: string; key: string; device: string; identity?: string; installation?: "automatic-v1" } =
     { operation: "offer", key: r.key, device: r.device };
   if (r.identity) payload.identity = r.identity;
+  if (r.audience === "automatic") payload.installation = "automatic-v1";
   try {
     const response = await fetch(r.endpoint + "/widget-offer", {
       method: "POST", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer",
@@ -190,6 +191,12 @@ async function check(r: Runtime) {
     if (!response.ok) throw Error("offer unavailable");
     const result = await response.json();
     if (r.disposed || generation !== r.generation || r.paused || !eligible(r)) return;
+    // Older endpoints do not understand automatic targeting. Do not display
+    // their offers until the endpoint explicitly reports the approved audience.
+    if (r.audience === "automatic" && (
+      !["signed_in", "all_visitors"].includes(result.audience) ||
+      (result.audience === "signed_in" && !r.identity)
+    )) { remove(r); status(r, "unavailable"); return; }
     if (result.available !== true || typeof result.offer !== "string" || !result.offer) {
       remove(r); status(r, "unavailable"); return;
     }
@@ -212,7 +219,7 @@ export function init(config: SightspoolConfig): void {
   try {
     const browser = host();
     if (!browser || !config || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(config.key)) return;
-    if (config.audience !== "all_visitors" && config.audience !== "signed_in") return;
+    if (config.audience !== "automatic" && config.audience !== "all_visitors" && config.audience !== "signed_in") return;
     const url = new URL(config.endpoint || "https://www.sightspool.com");
     if (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))) return;
     if (url.username || url.password) return;
@@ -230,7 +237,7 @@ export function init(config: SightspoolConfig): void {
     }
     const r: Runtime = {
       theme: config.theme === "light" || config.theme === "auto" ? config.theme : "dark",
-      key: config.key, endpoint: url.origin, audience: config.audience, identity: null, paused: false,
+      key: config.key, endpoint: url.origin, audience: config.audience, identity: null, identityReady: false, paused: false,
       attention: true, dismissed: false, completed: false, restoring: false, copy:{title:"Share your experience",subtitle:"A research conversation"}, shell:null,dismiss:null,
       disposed: false, generation: 0, device, offer: null, button: null,
       panel: null, frame: null, expanded: false, message: null, pending: null, timer: 0, visibility: () => {}, status: "signed_out",
@@ -276,10 +283,15 @@ export function identify(userId: string | null | undefined): void {
     if (!r) return;
     const trimmed = typeof userId === "string" ? userId.trim() : "";
     const identity = trimmed.length > 0 && trimmed.length <= MAX_IDENTITY_LENGTH ? trimmed : null;
+    // null is an explicit signed-out result; undefined/invalid values mean auth
+    // is unresolved. Never treat a loading/error state as an anonymous visitor.
+    const ready = userId === null || identity !== null;
+    const readinessChanged = r.identityReady !== ready;
+    r.identityReady = ready;
     // Re-stating the same person leaves their live invitation alone. Any change,
     // including to unidentified, takes the previous person's pending check and
     // minted offer with it, so an account switch never inherits an invitation.
-    if (identity === r.identity) { if (!r.paused && eligible(r)) void check(r); return; }
+    if (identity === r.identity && !readinessChanged) { if (!r.paused && eligible(r)) void check(r); return; }
     invalidate(r);
     r.identity = identity;
     status(r, r.paused ? "paused" : eligible(r) ? "unavailable" : "signed_out");

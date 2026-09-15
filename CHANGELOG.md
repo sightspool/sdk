@@ -1,3 +1,7 @@
+# 0.6.0 — automatic question audiences (local candidate)
+
+Adds automatic audience mode with explicit auth-state synchronization, server audience checks and installation context receipts. No publication performed.
+
 # Changelog
 
 ## 0.5.0 — 12 September 2026
