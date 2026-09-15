@@ -1,3 +1,15 @@
+# 0.6.3 — founder-only trust guide
+
+- Add the founder-only launch boundary to the static data and security guide.
+- Local candidate only. No npm publication or hosted artifact update.
+
+# 0.6.2 — founder-only launch documentation
+
+- Update SDK and static guide wording for founder-led launch interviews.
+- State that new AI interviewing, takeover and backup are deferred; the SDK
+  cannot make founder unavailability a replacement interview.
+- Local candidate only. No npm publication or hosted artifact update.
+
 # 0.6.1 — refresh expired invitations
 
 - Before joining, participants can request a current invitation from the panel.

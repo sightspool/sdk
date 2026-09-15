@@ -184,8 +184,10 @@ See `docs/research-sdk-transition.md` for release sequencing. Apache-2.0.
 ## Embedded interview panel
 
 An available invitation opens one bottom-right panel on the product page. Consent,
-waiting, supported founder audio or Sightspool text conversation, and completion
-remain inside its isolated Sightspool iframe. Minimize or Escape hides the panel;
+waiting for and speaking with the founder, and completion remain inside its isolated
+Sightspool iframe. AI interviewing, takeover and backup are deferred for launch;
+when the founder is unavailable, the server does not issue a replacement interview.
+Minimize or Escape hides the panel;
 Return to interview reopens the same session. Minimize does not mute, end or withdraw.
 Use the explicit in-panel controls to stop audio or delete interview evidence.
 
