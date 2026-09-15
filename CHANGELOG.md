@@ -1,3 +1,14 @@
+# 0.6.1 — refresh expired invitations
+
+- Before joining, participants can request a current invitation from the panel.
+  The host rechecks the current identity, audience and cohort before replacing
+  the expired offer; consent is reviewed again. No lifetime extension or reuse
+  of an expired cohort decision.
+- Only messages from the current Sightspool iframe may refresh it. Accepted or
+  restored interviews cannot be replaced by invitation refresh.
+- Preserve exact hosted 0.6.0 artifacts for existing pinned installations.
+  This build does not publish to npm.
+
 # 0.6.0 — automatic question audiences (local candidate)
 
 Adds automatic audience mode with explicit auth-state synchronization, server audience checks and installation context receipts. No publication performed.

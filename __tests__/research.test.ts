@@ -402,3 +402,25 @@ test("automatic audience waits for auth, follows question changes and invalidate
     assert.equal(env.elements.length, 1);
   });
 });
+
+
+test("expired invitation refresh rechecks host identity and cannot replace an accepted interview", async () => {
+  await browserTest(async env => {
+    sdk.init({audience:"signed_in",key}); sdk.identify("current-person");
+    await env.respond(0,{available:true,offer:"expired-offer"});
+    env.elements[0].onclick();
+    const frame=env.elements[1].children[1];
+    const refresh={type:"sightspool:invitation:refresh"};
+    for(const listener of env.messages)listener({origin:"https://evil.example",source:frame.contentWindow,data:refresh});
+    assert.equal(env.requests.length,1);
+    for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:refresh});
+    assert.equal(env.requests.length,2);
+    assert.equal(JSON.parse(env.requests[1].input.body as string).identity,"current-person");
+    await env.respond(1,{available:true,offer:"fresh-offer"});
+    assert.equal(new URLSearchParams(new URL(frame.src).hash.slice(1)).get("offer"),"fresh-offer");
+    assert.equal(frame.src.includes("current-person"),false);
+    for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:{type:"sightspool:interview:accepted"}});
+    for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:refresh});
+    assert.equal(env.requests.length,2);
+  });
+});

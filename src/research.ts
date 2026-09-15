@@ -18,7 +18,7 @@ type Runtime = {
   disposed: boolean; generation: number; device: string; offer: string | null;
   button: HTMLButtonElement | null; panel: HTMLElement | null; frame: HTMLIFrameElement | null;
   attention: boolean; dismissed: boolean; completed: boolean; restoring: boolean; copy: {title:string;subtitle:string}; shell: HTMLElement | null; dismiss: HTMLButtonElement | null;
-  expanded: boolean; message: ((event: MessageEvent) => void) | null;
+  expanded: boolean; accepted: boolean; message: ((event: MessageEvent) => void) | null;
   pending: AbortController | null; timer: number; visibility: () => void;
   status: ResearchStatus;
 };
@@ -161,14 +161,22 @@ function openPanel(r: Runtime) {
   r.message=(event)=>{
     if(event.source!==frame.contentWindow||event.origin!==r.endpoint)return;
     if(event.data?.type==="sightspool:panel:minimize")hide();
-    if(event.data?.type==="sightspool:interview:accepted"){saveMarker(r,"active");}
+    if(event.data?.type==="sightspool:interview:accepted"){r.accepted=true;saveMarker(r,"active");}
     if(event.data?.type==="sightspool:interview:ended"){r.completed=true;saveMarker(r,"ended");renderLauncher(r);}
+    if(event.data?.type==="sightspool:invitation:refresh"&&!r.accepted&&!r.restoring&&!r.completed){
+      // Recheck the current host identity/cohort, not the expired signed claim.
+      void check(r,true).then(fresh=>{
+        if(r.frame!==frame||r.accepted||r.restoring||r.completed)return;
+        if(fresh){url.hash=new URLSearchParams({offer:r.offer!,device:r.device}).toString();frame.src=url.href;}
+        else frame.contentWindow?.postMessage({type:"sightspool:invitation:refresh-failed"},r.endpoint);
+      });
+    }
   };
   window.addEventListener("message",r.message);r.button.setAttribute("aria-controls",panel.id);r.shell.appendChild(panel);expand(r,true);
 }
 
-async function check(r: Runtime) {
-  if (r.frame || r.restoring || r.disposed || r.paused || !eligible(r) || r.pending || document.visibilityState !== "visible") return;
+async function check(r: Runtime, refresh = false): Promise<boolean> {
+  if ((r.frame && !refresh) || r.restoring || r.disposed || r.paused || !eligible(r) || r.pending || document.visibilityState !== "visible") return false;
   const generation = r.generation;
   const request = new AbortController();
   r.pending = request;
@@ -190,15 +198,15 @@ async function check(r: Runtime) {
     });
     if (!response.ok) throw Error("offer unavailable");
     const result = await response.json();
-    if (r.disposed || generation !== r.generation || r.paused || !eligible(r)) return;
+    if (r.disposed || generation !== r.generation || r.paused || !eligible(r)) return false;
     // Older endpoints do not understand automatic targeting. Do not display
     // their offers until the endpoint explicitly reports the approved audience.
     if (r.audience === "automatic" && (
       !["signed_in", "all_visitors"].includes(result.audience) ||
       (result.audience === "signed_in" && !r.identity)
-    )) { remove(r); status(r, "unavailable"); return; }
+    )) { remove(r); status(r, "unavailable"); return false; }
     if (result.available !== true || typeof result.offer !== "string" || !result.offer) {
-      remove(r); status(r, "unavailable"); return;
+      remove(r); status(r, "unavailable"); return false;
     }
     r.offer = result.offer;
     status(r, "available");
@@ -206,8 +214,10 @@ async function check(r: Runtime) {
       r.copy={title:result.invitation.title.slice(0,200),subtitle:result.invitation.subtitle.slice(0,240)};
     }
     mountLauncher(r);
+    return true;
   } catch {
     if (!r.disposed && generation === r.generation) { remove(r); status(r, "error"); }
+    return false;
   } finally {
     window.clearTimeout(timeout);
     if (r.pending === request) r.pending = null;
@@ -240,7 +250,7 @@ export function init(config: SightspoolConfig): void {
       key: config.key, endpoint: url.origin, audience: config.audience, identity: null, identityReady: false, paused: false,
       attention: true, dismissed: false, completed: false, restoring: false, copy:{title:"Share your experience",subtitle:"A research conversation"}, shell:null,dismiss:null,
       disposed: false, generation: 0, device, offer: null, button: null,
-      panel: null, frame: null, expanded: false, message: null, pending: null, timer: 0, visibility: () => {}, status: "signed_out",
+      panel: null, frame: null, expanded: false, accepted: false, message: null, pending: null, timer: 0, visibility: () => {}, status: "signed_out",
     };
     try {
       r.dismissed=sessionStorage.getItem("sightspool-widget-dismissed:"+r.key)==="1";
