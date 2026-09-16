@@ -1,3 +1,10 @@
+# 0.6.4 — fit the visitor panel to its current step
+
+- Resize the existing iframe panel from origin- and source-checked content-height
+  messages. Keep the viewport height cap and the same iframe through state changes.
+- Preserve the exact hosted 0.6.3 artifact for existing pinned installations.
+- Hosted candidate; no npm publication.
+
 # 0.6.3 — founder-only trust guide
 
 - Add the founder-only launch boundary to the static data and security guide.

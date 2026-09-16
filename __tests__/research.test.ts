@@ -425,3 +425,22 @@ test("expired invitation refresh rechecks host identity and cannot replace an ac
     assert.equal(env.requests.length,2);
   });
 });
+
+test("panel follows trusted content height and ignores forged or invalid resize messages", async () => {
+  await browserTest(async (env) => {
+    sdk.init({audience:"all_visitors",key});
+    await env.respond(0,{available:true,offer:"approved"});
+    env.elements[0].onclick();
+    const panel=env.elements[1],header=panel.children[0],frame=panel.children[1];
+    header.offsetHeight=60;
+    const resize=(height:unknown,origin="https://www.sightspool.com",source=frame.contentWindow)=>{
+      for(const listener of env.messages)listener({origin,source,data:{type:"sightspool:panel:resize",height}});
+    };
+    resize(400);assert.equal(panel.style.height,"462px");
+    resize(160.2);assert.equal(panel.style.height,"223px");
+    resize(700,"https://untrusted.example");resize(700,undefined,{});
+    for(const height of [NaN,Infinity,-1,0,10001,"500",null])resize(height);
+    assert.equal(panel.style.height,"223px");
+    assert.equal(panel.children[1],frame);
+  });
+});

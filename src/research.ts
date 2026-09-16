@@ -160,6 +160,11 @@ function openPanel(r: Runtime) {
   r.panel=panel;r.frame=frame;
   r.message=(event)=>{
     if(event.source!==frame.contentWindow||event.origin!==r.endpoint)return;
+    if(event.data?.type==="sightspool:panel:resize"){
+      const height=event.data.height;
+      if(typeof height==="number"&&Number.isFinite(height)&&height>0&&height<=10000)
+        panel.style.height=`${Math.ceil(height)+header.offsetHeight+2}px`;
+    }
     if(event.data?.type==="sightspool:panel:minimize")hide();
     if(event.data?.type==="sightspool:interview:accepted"){r.accepted=true;saveMarker(r,"active");}
     if(event.data?.type==="sightspool:interview:ended"){r.completed=true;saveMarker(r,"ended");renderLauncher(r);}
