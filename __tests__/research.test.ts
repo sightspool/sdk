@@ -97,6 +97,7 @@ test("one approved offer opens an embedded session; minimize and recruitment cha
     assert.equal(env.timers.size, 1); assert.equal(env.requests.length, 1);
     await env.respond(0, { available: true, offer: "signed-capability" });
     const launcher = env.elements[0]; launcher.onclick();
+    assert.equal(launcher.attributes["aria-label"], "Minimise conversation");
     assert.equal(env.popups.length, 0);
     const panel = env.elements[1], frame = panel.children[1];
     const url = new URL(frame.src);

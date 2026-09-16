@@ -46,7 +46,7 @@ function status(r: Runtime, value: ResearchStatus) { r.status = value; }
 
 function renderLauncher(r: Runtime) {
   if (!r.button) return;
-  const iconOnly = r.completed || (r.dismissed && !r.expanded);
+  const iconOnly = r.completed || r.expanded || (r.dismissed && !r.expanded);
   r.button.className = "ss-launcher" + (iconOnly ? " ss-iconOnly" : !r.frame && r.attention ? " ss-attention" : "");
   const fresh = r.button.children.length === 0;
   const mark = (r.button.children[0] as HTMLElement) ?? document.createElement("span"); mark.className = "ss-launcherMark";
@@ -57,7 +57,7 @@ function renderLauncher(r: Runtime) {
   if(fresh){copy.appendChild(title); copy.appendChild(subtitle);}
   const arrow = (r.button.children[2] as HTMLElement) ?? document.createElement("span"); arrow.className = "ss-launcherAction"; arrow.textContent = r.expanded ? "−" : "→"; arrow.setAttribute("aria-hidden", "true");
   if(fresh){r.button.appendChild(mark); r.button.appendChild(copy); r.button.appendChild(arrow);}
-  r.button.setAttribute("aria-label", r.completed ? "View your accepted thank-you" : iconOnly ? "Show invitation message" : title.textContent + ". " + subtitle.textContent);
+  r.button.setAttribute("aria-label", r.completed ? "View your accepted thank-you" : r.expanded ? "Minimise conversation" : iconOnly ? "Show invitation message" : title.textContent + ". " + subtitle.textContent);
   if (r.completed && !r.button.children[3]) { const check = document.createElement("span"); check.className="ss-receiptCheck"; check.textContent="✓"; check.setAttribute("aria-hidden","true"); r.button.appendChild(check); }
   if (r.dismiss) { r.dismiss.disabled = Boolean(r.frame || r.dismissed); r.dismiss.setAttribute("data-visible", String(!r.frame && !r.dismissed)); }
 }
@@ -100,15 +100,19 @@ function mountLauncher(r: Runtime) {
 .ss-widgetPosition{z-index:2147483000;font:14px Arial,Helvetica,sans-serif;line-height:1.5}
 .ss-widgetPosition *{box-sizing:border-box}
 .ss-widgetPosition button{font:inherit;cursor:pointer;outline-offset:4px}
-.ss-panel{position:absolute;bottom:calc(100% + 12px);right:0;width:100%;height:610px;max-height:calc(100dvh - max(22px,env(safe-area-inset-bottom)) - 104px);border:1px solid #e7e0e6;border-radius:20px;background:#fcfaf9;color:#241e25;box-shadow:0 16px 64px #18101d26;overflow:hidden;display:flex;flex-direction:column;transform-origin:bottom right;opacity:0;visibility:hidden;transform:translateY(18px) scale(.82,.2);transition:transform 340ms cubic-bezier(.4,0,.6,1),opacity 180ms,visibility 0s 340ms;pointer-events:none}
+.ss-panel{position:absolute;bottom:calc(100% + 12px);right:0;width:100%;height:610px;max-height:calc(100dvh - max(22px,env(safe-area-inset-bottom)) - 104px);border:1px solid #e7e0e6;border-radius:24px;background:#fcfaf9;color:#241e25;box-shadow:0 24px 80px #18101d26,0 4px 16px #18101d12;overflow:hidden;display:flex;flex-direction:column;transform-origin:bottom right;opacity:0;visibility:hidden;transform:translateY(12px) scale(.96);transition:transform 340ms cubic-bezier(.4,0,.6,1),opacity 180ms,visibility 0s 340ms;pointer-events:none}
 .ss-panel[data-open="true"]{opacity:1;visibility:visible;transform:translateY(0) scale(1);transition:transform 480ms cubic-bezier(.16,1,.3,1),opacity 200ms,visibility 0s;pointer-events:auto}
 .ss-panel>div,.ss-panel>iframe{opacity:0;transition:opacity 120ms}
 .ss-panel[data-open="true"]>div,.ss-panel[data-open="true"]>iframe{opacity:1;transition:opacity 240ms 170ms}
-.ss-panel>div{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid #e7e0e6}
-.ss-panel>div>button{border:0;background:transparent;color:#554b58;padding:8px;border-radius:8px}
+.ss-panel>div{display:flex;align-items:center;justify-content:space-between;min-height:72px;flex-shrink:0;padding:14px 20px;border-bottom:1px solid #e7e0e6;background:linear-gradient(135deg,#a8176808,transparent 75%)}
+.ss-panelBrand{display:flex;align-items:center;gap:11px;font-size:15px;letter-spacing:-.02em}
+.ss-panelBrand img{display:block;width:34px;height:34px;padding:6px;border-radius:12px;background:#18181b}
+.ss-panel>div>button{border:0;background:transparent;color:#554b58;min-height:44px;padding:10px;border-radius:12px;font-size:12px;transition:background 150ms,color 150ms}
+.ss-panel>div>button:hover{background:#a817680c;color:#a81768}
+.ss-panel>div>button:focus-visible{outline:2px solid #a81768;outline-offset:2px}
 .ss-panel iframe{display:block;width:100%;flex:1;min-height:0;border:0;background:#fcfaf9}
 [data-theme="dark"] .ss-panel{background:#18181b;color:#fff;border-color:#ffffff1c}
-[data-theme="dark"] .ss-panel>div{border-color:#ffffff1c}
+[data-theme="dark"] .ss-panel>div{border-color:#ffffff12;background:linear-gradient(135deg,#a8176814,transparent 80%)}
 [data-theme="dark"] .ss-panel>div>button{color:#cbc5cd}
 @media(prefers-color-scheme:dark){[data-theme="auto"] .ss-panel{background:#18181b;color:#fff;border-color:#ffffff1c}[data-theme="auto"] .ss-panel>div{border-color:#ffffff1c}[data-theme="auto"] .ss-panel>div>button{color:#cbc5cd}}
 .ss-receiptCheck{position:absolute;right:0;top:0;display:grid;place-items:center;width:16px;height:16px;border:2px solid #18181b;border-radius:50%;background:#c6fa64;color:#18181b;font-size:10px}
@@ -149,9 +153,11 @@ function openPanel(r: Runtime) {
   if ((!r.offer && !r.restoring) || !r.button || !r.shell) return;
   const panel = document.createElement("section"); panel.className="ss-panel";
   panel.id="sightspool-interview-panel";panel.setAttribute("role","dialog");panel.setAttribute("aria-label","Sightspool interview");
-  const header=document.createElement("div");const title=document.createElement("strong");title.textContent="Sightspool";
+  const header=document.createElement("div");const brand=document.createElement("span");brand.className="ss-panelBrand";
+  const logo=document.createElement("img");logo.src=r.endpoint+"/sightspool-monomark-dark-bg.svg";logo.width=34;logo.height=34;logo.alt="";
+  const title=document.createElement("strong");title.textContent="Sightspool";brand.appendChild(logo);brand.appendChild(title);
   const minimize=document.createElement("button");minimize.type="button";minimize.textContent="Minimise";
-  const hide=()=>expand(r,false);minimize.onclick=hide;header.appendChild(title);header.appendChild(minimize);panel.appendChild(header);
+  const hide=()=>expand(r,false);minimize.onclick=hide;header.appendChild(brand);header.appendChild(minimize);panel.appendChild(header);
   const frame=document.createElement("iframe");frame.title="Sightspool research conversation";frame.allow="microphone; autoplay; clipboard-write";
   frame.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox");frame.referrerPolicy="no-referrer";
   const url=new URL(r.endpoint+"/interview-widget");url.searchParams.set("key",r.key);url.searchParams.set("theme",r.theme);

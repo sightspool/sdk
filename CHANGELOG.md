@@ -1,3 +1,10 @@
+# 0.6.5 — refined visitor panel
+
+- Add a branded header, softer panel corners/shadows and a gentler entrance.
+- Keep the launcher compact while open, with an accurate accessible action name.
+- Preserve the hosted 0.6.4 artifact for existing pinned installations.
+- Hosted candidate; no npm publication.
+
 # 0.6.4 — fit the visitor panel to its current step
 
 - Resize the existing iframe panel from origin- and source-checked content-height

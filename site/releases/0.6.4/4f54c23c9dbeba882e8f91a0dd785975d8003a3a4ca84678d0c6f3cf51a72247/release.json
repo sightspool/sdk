@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "package": "@sightspool/sdk",
+  "version": "0.6.4",
+  "sourceCommit": "1470183b3675b619075920cb34d1a02a33afc4f5",
+  "sourceDirty": false,
+  "artifactId": "4f54c23c9dbeba882e8f91a0dd785975d8003a3a4ca84678d0c6f3cf51a72247",
+  "bundle": {
+    "file": "sdk.global.js",
+    "path": "releases/0.6.4/4f54c23c9dbeba882e8f91a0dd785975d8003a3a4ca84678d0c6f3cf51a72247/sdk.global.js",
+    "sha256": "5856e18016a89ecc0ddb1482039bda068254b4f77df310cc1ffaa6af93a03aa8",
+    "integrity": "sha384-7ssFQ9DFQaJMEKxtrMCBaXXzvpC6BF5suTHBPLnQDewK4kEQprXgKVsGCanulAYW",
+    "bytes": 18733,
+    "gzipBytes": 6385
+  },
+  "source": {
+    "file": "source.json",
+    "sha256": "ab8ae53a177899dad208c44376dd2ec0afd2785f7bdfadf8d5295e26379bfd0c"
+  },
+  "runtimeDependencies": []
+}
