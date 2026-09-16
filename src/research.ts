@@ -20,6 +20,7 @@ type Runtime = {
   attention: boolean; dismissed: boolean; completed: boolean; restoring: boolean; copy: {title:string;subtitle:string}; shell: HTMLElement | null; dismiss: HTMLButtonElement | null;
   expanded: boolean; accepted: boolean; message: ((event: MessageEvent) => void) | null;
   pending: AbortController | null; timer: number; visibility: () => void;
+  analyticsId: string | null; analytics: boolean; tracked: Set<string>; impression: IntersectionObserver | null; impressionTimer: number;
   status: ResearchStatus;
 };
 // The server accepts a trimmed, non-empty id of at most this length
@@ -34,9 +35,34 @@ const markerKey = (r: Runtime) => "sightspool-widget-session:" + r.key;
 function saveMarker(r: Runtime, value: string) { try { sessionStorage.setItem(markerKey(r), value); } catch {} }
 const eligible = (r: Runtime) => r.audience === "automatic" ? r.identityReady : r.audience === "all_visitors" || r.identity !== null;
 
+function analyticsOptOut(): boolean {
+  return window.navigator?.doNotTrack === "1" || (window.navigator as Navigator & {globalPrivacyControl?:boolean})?.globalPrivacyControl === true;
+}
+function track(r: Runtime, event: string, surface = r.frame ? "panel" : r.dismissed ? "compact" : "invitation") {
+  if (!r.analytics || !r.offer || analyticsOptOut() || r.tracked.has(event)) return;
+  if (event === "widget_interacted" && document.visibilityState === "visible") track(r,"widget_shown",surface);
+  r.tracked.add(event);
+  void fetch(r.endpoint + "/widget-offer", {
+    method: "POST", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer", keepalive: true,
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({operation:"track",offer:r.offer,device:r.device,event,surface}),
+  }).catch(()=>{});
+}
+function observeInvitation(r: Runtime) {
+  if (!r.analytics || !r.button || r.impression || typeof IntersectionObserver === "undefined") return;
+  // A server offer is not an impression. Require half the launcher in a visible
+  // viewport continuously for one second; this does not prove human attention.
+  r.impression = new IntersectionObserver(entries=>{
+    window.clearTimeout(r.impressionTimer);
+    if (entries.some(entry=>entry.isIntersecting && entry.intersectionRatio>=0.5) && document.visibilityState==="visible")
+      r.impressionTimer=window.setTimeout(()=>{if(document.visibilityState==="visible" && r.button?.isConnected) track(r,"widget_shown");},1000);
+  },{threshold:[0,0.5]});
+  r.impression.observe(r.button);
+}
 function remove(r: Runtime) {
   // An opened interview owns its lifetime. Recruitment changes cannot end it.
   if (r.frame || r.restoring) return;
+  r.impression?.disconnect(); r.impression=null; window.clearTimeout(r.impressionTimer); r.tracked.clear();
   r.shell?.remove(); r.shell = null; r.dismiss = null; r.button = null; r.offer = null;
 }
 function invalidate(r: Runtime) {
@@ -62,7 +88,7 @@ function renderLauncher(r: Runtime) {
   if (r.dismiss) { r.dismiss.disabled = Boolean(r.frame || r.dismissed); r.dismiss.setAttribute("data-visible", String(!r.frame && !r.dismissed)); }
 }
 function mountLauncher(r: Runtime) {
-  if (r.button) { renderLauncher(r); return; }
+  if (r.button) { renderLauncher(r); observeInvitation(r); return; }
   const shell = document.createElement("aside"); shell.className="ss-widgetPosition"; shell.setAttribute("data-theme",r.theme); shell.setAttribute("aria-label","Sightspool research");
   const style = document.createElement("style"); style.textContent = `.ss-widgetPosition { position: fixed; bottom: max(22px,env(safe-area-inset-bottom)); right: max(24px,env(safe-area-inset-right)); z-index: 60; width: min(366px,calc(100vw - 32px)); pointer-events: none; }
 .ss-widgetPosition > section[data-open="true"], .ss-launcher, .ss-dismissInvitation[data-visible="true"] { pointer-events: auto; }
@@ -125,20 +151,22 @@ function mountLauncher(r: Runtime) {
   const button = document.createElement("button"); button.type="button";
   const dismiss = document.createElement("button"); dismiss.type="button"; dismiss.className="ss-dismissInvitation"; dismiss.textContent="×";
   dismiss.setAttribute("aria-label","Dismiss invitation and keep a small button");
-  dismiss.onclick=()=>{r.attention=false;r.dismissed=true;try{sessionStorage.setItem("sightspool-widget-dismissed:"+r.key,"1");}catch{}renderLauncher(r);button.focus();};
+  dismiss.onclick=()=>{track(r,"widget_interacted");track(r,"widget_dismissed");r.attention=false;r.dismissed=true;try{sessionStorage.setItem("sightspool-widget-dismissed:"+r.key,"1");}catch{}renderLauncher(r);button.focus();};
   button.onanimationend=(event)=>{if(event.animationName.includes("invitation-glow")){r.attention=false;renderLauncher(r);}};
   button.onclick=()=>{
+    if(!r.accepted&&!r.restoring&&!r.completed)track(r,"widget_interacted");
     if(r.completed || r.frame || r.restoring){if(r.frame)expand(r,!r.expanded);else openPanel(r);return;}
     if(r.dismissed){r.attention=false;r.dismissed=false;try{sessionStorage.setItem("sightspool-widget-dismissed:"+r.key,"0");}catch{}renderLauncher(r);return;}
     if(!r.disposed&&!r.paused&&eligible(r))openPanel(r);
   };
   group.appendChild(button);group.appendChild(dismiss);row.appendChild(group);shell.appendChild(row);
-  r.shell=shell;r.button=button;r.dismiss=dismiss;document.body.appendChild(shell);renderLauncher(r);
+  r.shell=shell;r.button=button;r.dismiss=dismiss;document.body.appendChild(shell);renderLauncher(r);observeInvitation(r);
 }
 function expand(r: Runtime, expanded: boolean) {
   if (!r.panel || !r.frame || !r.button) return;
   if (r.expanded === expanded) return;
   const ownedFocus = r.panel.contains(document.activeElement);
+  if (!r.accepted && !r.restoring && !r.completed) track(r, expanded ? "widget_opened" : "widget_minimized", "panel");
   r.expanded = expanded;
   r.panel.setAttribute("data-open", String(expanded));
   r.panel.setAttribute("aria-hidden", String(!expanded));
@@ -196,8 +224,10 @@ async function check(r: Runtime, refresh = false): Promise<boolean> {
   // Only the offer call carries the identity. The interview page is served by
   // Sightspool itself and is handed nothing but the offer and device, so the
   // cohort decision is frozen into the signed offer instead (SIG-122 §10).
-  const payload: { operation: string; key: string; device: string; identity?: string; installation?: "automatic-v1" } =
-    { operation: "offer", key: r.key, device: r.device };
+  const payload: { operation: string; key: string; device: string; identity?: string; installation?: "automatic-v1"; funnel: "v1"; previousOffer?:string; analyticsOptOut?:boolean } =
+    { operation: "offer", key: r.key, device: r.device, funnel: "v1" };
+  if (r.analytics && r.offer) payload.previousOffer=r.offer;
+  if (analyticsOptOut()) payload.analyticsOptOut=true;
   if (r.identity) payload.identity = r.identity;
   if (r.audience === "automatic") payload.installation = "automatic-v1";
   try {
@@ -219,6 +249,11 @@ async function check(r: Runtime, refresh = false): Promise<boolean> {
     if (result.available !== true || typeof result.offer !== "string" || !result.offer) {
       remove(r); status(r, "unavailable"); return false;
     }
+    if (r.analyticsId !== (result.invitationId ?? null)) {
+      r.tracked.clear();r.impression?.disconnect();r.impression=null;window.clearTimeout(r.impressionTimer);
+      r.analyticsId=result.invitationId ?? null;
+    }
+    r.analytics = result.analytics === true && !analyticsOptOut();
     r.offer = result.offer;
     status(r, "available");
     if (result.invitation && typeof result.invitation.title === "string" && typeof result.invitation.subtitle === "string") {
@@ -260,6 +295,7 @@ export function init(config: SightspoolConfig): void {
       theme: config.theme === "light" || config.theme === "auto" ? config.theme : "dark",
       key: config.key, endpoint: url.origin, audience: config.audience, identity: null, identityReady: false, paused: false,
       attention: true, dismissed: false, completed: false, restoring: false, copy:{title:"Share your experience",subtitle:"A research conversation"}, shell:null,dismiss:null,
+      analyticsId:null,analytics:false,tracked:new Set(),impression:null,impressionTimer:0,
       disposed: false, generation: 0, device, offer: null, button: null,
       panel: null, frame: null, expanded: false, accepted: false, message: null, pending: null, timer: 0, visibility: () => {}, status: "signed_out",
     };

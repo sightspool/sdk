@@ -1,3 +1,10 @@
+# 0.6.6 — invitation funnel (local candidate)
+
+- Add bounded invitation display/control analytics and continuity across polling.
+- Respect DNT/GPC while preserving participation; no host-page activity or participant profiles.
+- Privacy scope changes from earlier research SDK versions; review README/data-security before upgrading.
+- Not published or deployed by this local build.
+
 # 0.6.5 — refined visitor panel
 
 - Add a branded header, softer panel corners/shadows and a gentler entrance.
@@ -40,6 +47,14 @@
 Adds automatic audience mode with explicit auth-state synchronization, server audience checks and installation context receipts. No publication performed.
 
 # Changelog
+
+## 0.6.6 — local candidate
+
+- Add bounded invitation display/control analytics and continuity across offer polling.
+- Respect DNT/GPC while preserving participation. No host-page activity or participant profile capture.
+- Privacy scope changes from earlier research SDK versions; review README/data-security before upgrading.
+- Not published or deployed by this local build.
+
 
 ## 0.5.0 — 12 September 2026
 

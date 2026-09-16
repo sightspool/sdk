@@ -8,7 +8,7 @@ const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 async function browserTest(run: (env: ReturnType<typeof browser>) => Promise<void>) {
   const env = browser();
   const originals = new Map<string, PropertyDescriptor | undefined>();
-  for (const name of ["window", "document", "sessionStorage", "fetch"]) {
+  for (const name of ["window", "document", "sessionStorage", "fetch", "IntersectionObserver"]) {
     originals.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
     Object.defineProperty(globalThis, name, { configurable: true, writable: true, value: env[name as keyof typeof env] });
   }
@@ -33,9 +33,13 @@ function browser() {
   const storage = new Map<string, string>();
   const popups: string[] = [];
   const messages = new Set<(event: any) => void>();
+  const observers: any[] = [], impressionTimers = new Map<number,()=>void>();
+  class IntersectionObserver { disconnected=false; callback:(entries:any[])=>void; constructor(callback:(entries:any[])=>void){this.callback=callback;observers.push(this);} observe(){} disconnect(){this.disconnected=true;} }
   let timerId = 0;
   const window: any = {
-    setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout,
+    navigator: {},
+    setTimeout(fn:()=>void,delay:number) {if(delay===1000){impressionTimers.set(++timerId,fn);return timerId;}return globalThis.setTimeout(fn,delay);},
+    clearTimeout(id:any) {impressionTimers.delete(id);globalThis.clearTimeout(id);},
     setInterval(fn: () => void) { timers.set(++timerId, fn); return timerId; },
     clearInterval(id: number) { timers.delete(id); },
     addEventListener(name: string, fn: (event: any) => void) { assert.equal(name, "message"); messages.add(fn); },
@@ -45,7 +49,7 @@ function browser() {
   const document: any = {
     visibilityState: "visible",
     createElement(tag: string) {
-      const el: any = { tag, children: [], attributes: {}, style: {}, hidden: false, contentWindow: {},
+      const el: any = { get isConnected(){return flatten(roots).includes(el);}, tag, children: [], attributes: {}, style: {}, hidden: false, contentWindow: {},
         appendChild(child: any) { this.children.push(child); },
         replaceChildren() { this.children=[]; },
         contains(node: any) {return flatten([el]).includes(node);},
@@ -62,7 +66,7 @@ function browser() {
   const fetch = (url: string, input: RequestInit) => new Promise((resolve, reject) => { requests.push({ url, input, resolve, reject }); });
   const sessionStorage = { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => storage.set(k, v) };
   const respond = async (i: number, result: unknown, ok = true) => { requests[i].resolve({ ok, json: async () => result }); await tick(); };
-  return { window, document, fetch, sessionStorage, requests, elements, timers, visibility, storage, popups, messages, respond };
+  return { window, document, fetch, sessionStorage, requests, elements, timers, visibility, storage, popups, messages, respond, IntersectionObserver, observers, impressionTimers };
 }
 
 test("research is idle before sign-in, then sends the identity and nothing else", async () => {
@@ -77,7 +81,7 @@ test("research is idle before sign-in, then sends the identity and nothing else"
     const body = JSON.parse(env.requests[0].input.body as string);
     // From 0.5.0 the id is sent (SIG-122), and still nothing else: no page data,
     // no URL, no traits, no capture payload.
-    assert.deepEqual(Object.keys(body).sort(), ["device", "identity", "key", "operation"]);
+    assert.deepEqual(Object.keys(body).sort(), ["device", "funnel", "identity", "key", "operation"]);
     assert.equal(body.identity, "private-user@example.com");
     assert.match(body.device, /^ss_fcd_[A-Za-z0-9_-]{43}$/);
     assert.equal(env.requests[0].input.credentials, "omit");
@@ -198,7 +202,7 @@ test("all-visitors research works anonymously and remains eligible after logout"
     // guest calls before and after are byte-identical to the pre-0.5.0 payload.
     env.requests.forEach((request, index) => {
       const body = JSON.parse(request.input.body as string);
-      assert.deepEqual(Object.keys(body).sort(), index === 1 ? ["device", "identity", "key", "operation"] : ["device", "key", "operation"]);
+      assert.deepEqual(Object.keys(body).sort(), index === 1 ? ["device", "funnel", "identity", "key", "operation"] : ["device", "funnel", "key", "operation"]);
       assert.equal(body.identity, index === 1 ? "signed-in-user" : undefined);
     });
   });
@@ -259,7 +263,7 @@ test("an identified visitor carries the id on the offer call and nowhere else", 
     sdk.identify("  person-one  ");
     assert.equal(env.requests.length, 1);
     const body = JSON.parse(env.requests[0].input.body as string);
-    assert.deepEqual(Object.keys(body).sort(), ["device", "identity", "key", "operation"]);
+    assert.deepEqual(Object.keys(body).sort(), ["device", "funnel", "identity", "key", "operation"]);
     assert.equal(body.identity, "person-one");
     assert.equal(env.requests[0].input.credentials, "omit");
     assert.equal(env.requests[0].input.referrerPolicy, "no-referrer");
@@ -314,7 +318,7 @@ test("all_visitors with no identify call offers exactly as before", async () => 
   await browserTest(async (env) => {
     sdk.init({ key, audience: "all_visitors" });
     assert.equal(env.requests.length, 1);
-    assert.deepEqual(Object.keys(JSON.parse(env.requests[0].input.body as string)).sort(), ["device", "key", "operation"]);
+    assert.deepEqual(Object.keys(JSON.parse(env.requests[0].input.body as string)).sort(), ["device", "funnel", "key", "operation"]);
     await env.respond(0, { available: true, offer: "guest-offer" });
     assert.equal(env.elements.length, 1);
     assert.equal(sdk.getStatus(), "available");
@@ -322,7 +326,7 @@ test("all_visitors with no identify call offers exactly as before", async () => 
     assert.equal(identityOf(env.requests[1]), "guest-turned-member");
     await env.respond(1, { available: true, offer: "member-offer" });
     sdk.identify(null);
-    assert.deepEqual(Object.keys(JSON.parse(env.requests[2].input.body as string)).sort(), ["device", "key", "operation"]);
+    assert.deepEqual(Object.keys(JSON.parse(env.requests[2].input.body as string)).sort(), ["device", "funnel", "key", "operation"]);
     await env.respond(2, { available: true, offer: "guest-again" });
     assert.equal(env.elements.length, 1);
   });
@@ -444,4 +448,36 @@ test("panel follows trusted content height and ignores forged or invalid resize 
     assert.equal(panel.style.height,"223px");
     assert.equal(panel.children[1],frame);
   });
+});
+
+
+test("an offered invitation is not an impression; visible display and first controls are bounded and deduplicated",async()=>{
+ await browserTest(async env=>{
+  sdk.init({audience:"all_visitors",key});
+  await env.respond(0,{available:true,offer:"first-signed-offer",analytics:true,invitationId:"invitation-a"});
+  assert.equal(env.requests.length,1);
+  env.observers[0].callback([{isIntersecting:true,intersectionRatio:0.4}]);assert.equal(env.impressionTimers.size,0);
+  env.observers[0].callback([{isIntersecting:true,intersectionRatio:0.8}]);env.impressionTimers.forEach(fn=>fn());
+  assert.equal(JSON.parse(env.requests[1].input.body as string).event,"widget_shown");await env.respond(1,{ok:true});
+  env.timers.forEach(fn=>fn());assert.equal(JSON.parse(env.requests[2].input.body as string).previousOffer,"first-signed-offer");
+  await env.respond(2,{available:true,offer:"renewed-signed-offer",analytics:true,invitationId:"invitation-a"});
+  const launcher=env.elements[0];launcher.onclick();
+  assert.deepEqual(env.requests.slice(3).map(r=>JSON.parse(r.input.body as string).event),["widget_interacted","widget_opened"]);
+  launcher.onclick();launcher.onclick();
+  assert.deepEqual(env.requests.slice(3).map(r=>JSON.parse(r.input.body as string).event),["widget_interacted","widget_opened","widget_minimized"]);
+  for(const request of env.requests.filter(r=>JSON.parse(r.input.body as string).operation==="track")){
+   assert.deepEqual(Object.keys(JSON.parse(request.input.body as string)).sort(),["device","event","offer","operation","surface"]);
+   assert.equal(request.input.credentials,"omit");assert.equal(request.input.referrerPolicy,"no-referrer");
+   request.resolve({ok:true});
+  }
+ });
+});
+test("DNT disables presentation tracking without disabling participation",async()=>{
+ await browserTest(async env=>{
+  env.window.navigator.doNotTrack="1";
+  sdk.init({audience:"all_visitors",key});
+  assert.equal(JSON.parse(env.requests[0].input.body as string).analyticsOptOut,true);
+  await env.respond(0,{available:true,offer:"signed-offer",analytics:true,invitationId:"invitation-a"});
+  env.elements[0].onclick();assert.equal(env.elements.length,2);assert.equal(env.requests.length,1);assert.equal(env.observers.length,0);
+ });
 });

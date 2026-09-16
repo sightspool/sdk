@@ -2,7 +2,7 @@
 
 Embed Sightspool research in your product. The SDK invites website visitors and signed-in users into
 owner-approved research during User Hours, then opens Sightspool for consent and
-the interview. It does not capture page content, behavior, form values or analytics.
+the interview. It does not capture host-page content, form values or browsing activity. From 0.6.6 it reports bounded invitation display and widget-control milestones; see the data and security guide.
 
 This is the **research API introduced in 0.4.0**, a deliberate change from the old
 capture SDK. Install the exact version below and review upgrades before deploying

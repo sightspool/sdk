@@ -1,5 +1,31 @@
 # Sightspool research SDK
 
+## Invitation funnel (0.6.6 local candidate)
+
+This version adds bounded widget analytics. It reports a launcher at least half
+in the viewport for one visible second, or a direct click on it; the first
+interaction, panel open, dismissal and pre-join minimization; and bounded
+participation controls. The service links accepted, connected and completed
+interviews to a random invitation ID. These are invitation counts, not unique
+people or proof of attention. No activity is inferred merely from offer polling.
+
+Offer requests add `funnel: "v1"`, an optional previous signed offer for continuity,
+and `analyticsOptOut: true` when DNT/GPC is set. Tracking requests contain only
+`operation`, the signed offer, the existing session device token, an allowlisted
+event name and a bounded surface label. They omit cookies/referrers, host-page
+URLs, page text and the identity passed to `identify`. PostHog receives opaque
+invitation/workspace IDs and bounded event metadata, not capability/device tokens
+or participant profiles. DNT/GPC disables these optional reports while leaving
+participation available. Blocked/lost requests can undercount. Old SDKs do not
+report impressions; they must not be included in the funnel denominator.
+
+Tracking IDs continue across polls for the same invitation for at most 24 hours.
+A removed/recreated invitation is a new opportunity. No-interaction and no-join
+segments mean no later event observed within 24 hours, not a permanent rejection.
+A booking link click is not a confirmed booking. Review this privacy-scope change
+before upgrading; existing pinned installations do not update automatically.
+
+
 ## Automatic question audiences (0.6.0 local candidate)
 
 For a reusable installation, mount the SDK once across public and authenticated
@@ -22,7 +48,7 @@ with their local restrictions; existing installations do not upgrade themselves.
 
 Embed Sightspool research in your product. The SDK invites website visitors and signed-in users into
 owner-approved research during User Hours, then opens Sightspool for consent and
-the interview. It does not capture page content, behavior, form values or analytics.
+the interview. It does not capture host-page content, form values or browsing activity. From 0.6.6 it reports bounded invitation display and widget-control milestones; see the data and security guide.
 
 This is the **research API introduced in 0.4.0**, a deliberate change from the old
 capture SDK. Install the exact version below and review upgrades before deploying
