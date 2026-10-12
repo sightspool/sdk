@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Justusability research SDK</title><link rel="stylesheet" href="styles.css"></head><body><main class="wrap"><nav aria-label="SDK documentation"><a href="index.html">SDK guide</a><a href="trust.html">Data &amp; security</a><a href="demo.html">Try the SDK</a><a href="https://research.justusability.com/sdk/releases">Source snapshots</a></nav><header><h1>Justusability research SDK</h1></header>
 <p>Invite website visitors and signed-in users into approved research with Justusability. The widget opens a consented conversation, a voice-note option or a booking link, according to the research team&#x27;s approved plan. Participants do not need an account.</p>
-<p>Version <strong>0.1.0 is a local release candidate</strong>. Publication and the <code>research.justusability.com</code> deployment must be completed before these production examples can be used. Use an explicit local endpoint for development. This release does not provide the former brand&#x27;s package, browser globals or installation attributes.</p>
+<p>Version <strong>0.1.0</strong> uses <code>https://research.justusability.com</code> as its research service. Use an explicit local endpoint for development. This release does not provide the former brand&#x27;s package, browser globals or installation attributes.</p>
 <h2>npm</h2>
-<p>After publication, install the exact reviewed release:</p>
+<p>Install the exact reviewed release:</p>
 <pre><code>npm install --save-exact @justusability/sdk@0.1.0</code></pre>
 <pre><code>import Justusability from &#x27;@justusability/sdk&#x27;
 
@@ -26,7 +26,7 @@ Justusability.identify(currentUser?.id ?? null) // After authentication resolves
 <h2>API</h2>
 <table><tr><th>Method</th><th>Behaviour</th></tr><tr><td><code>init({ key, audience, endpoint?, theme? })</code></td><td>Initialise one runtime. The key is a workspace UUID. Theme is <code>light</code>, <code>dark</code> or <code>auto</code>.</td></tr><tr><td><code>identify(userId)</code></td><td>Synchronise eligibility. A non-empty ID up to 200 characters is sent only on the offer request, held in memory and hashed per workspace by the service. <code>null</code> means signed out; <code>undefined</code> means loading in automatic mode.</td></tr><tr><td><code>pause()</code> / <code>resume()</code></td><td>Control recruitment. They do not bypass approved availability, capacity or consent.</td></tr><tr><td><code>destroy()</code></td><td>Remove recruitment and listeners. An already opened conversation is not silently ended.</td></tr><tr><td><code>getStatus()</code></td><td>Read <code>not_initialized</code>, <code>signed_out</code>, <code>paused</code>, <code>checking</code>, <code>unavailable</code>, <code>available</code> or <code>error</code>.</td></tr></table>
 <h2>React</h2>
-<p>Use the optional <code>@justusability/react@0.1.0</code> companion after publication:</p>
+<p>Use the optional <code>@justusability/react@0.1.0</code> companion:</p>
 <pre><code>import { JustusabilityProvider } from &#x27;@justusability/react&#x27;
 
 &lt;JustusabilityProvider apiKey=&quot;YOUR_WORKSPACE_WIDGET_UUID&quot;

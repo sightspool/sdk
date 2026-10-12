@@ -2,11 +2,11 @@
 
 Invite website visitors and signed-in users into approved research with Justusability. The widget opens a consented conversation, a voice-note option or a booking link, according to the research team's approved plan. Participants do not need an account.
 
-Version **0.1.0 is a local release candidate**. Publication and the `research.justusability.com` deployment must be completed before these production examples can be used. Use an explicit local endpoint for development. This release does not provide the former brand's package, browser globals or installation attributes.
+Version **0.1.0** uses `https://research.justusability.com` as its research service. Use an explicit local endpoint for development. This release does not provide the former brand's package, browser globals or installation attributes.
 
 ## npm
 
-After publication, install the exact reviewed release:
+Install the exact reviewed release:
 
 ```sh
 npm install --save-exact @justusability/sdk@0.1.0
@@ -56,7 +56,7 @@ There is no default audience. Missing or invalid configuration stays idle. Ident
 
 ## React
 
-Use the optional `@justusability/react@0.1.0` companion after publication:
+Use the optional `@justusability/react@0.1.0` companion:
 
 ```tsx
 import { JustusabilityProvider } from '@justusability/react'

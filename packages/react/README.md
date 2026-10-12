@@ -1,6 +1,6 @@
 # @justusability/react
 
-React bindings for `@justusability/sdk@0.1.0`. Both packages are local release candidates pending publication.
+React bindings for `@justusability/sdk@0.1.0`. Use the matching 0.1.x core SDK.
 
 ```tsx
 import { JustusabilityProvider } from '@justusability/react'
