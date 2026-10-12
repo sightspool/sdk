@@ -51,4 +51,11 @@ Verification and retirement receipts are maintained in the paired app's
 inactive on this production server. No research data or schema was migrated,
 no study was enabled, and no real participant audio was recorded for this release.
 
-Registry removal cannot recall copies already downloaded or hosted elsewhere.
+Both former packages were unpublished on 13 October 2026 after separate maintainer
+security-key checks: `@sightspool/react` 0.1.0 and all eight `@sightspool/sdk`
+versions through 0.5.0. The registry has no available former versions and both
+`/latest` endpoints return 404; the new Justusability packages still resolve to
+0.1.0. The paired app's `npm-retirement.json` records the read-back evidence.
+Old GitHub Pages hosting is removed, and `sdk.sightspool.com` redirects through
+Vercel to the research host. Registry removal cannot recall copies already
+downloaded or hosted elsewhere.
