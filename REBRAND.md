@@ -1,16 +1,16 @@
-# Justusability SDK release candidate — 13 October 2026
+# Justusability SDK release — 13 October 2026
 
 The owner authorized replacing the public SDK and participant identity with
 Justusability, without maintaining the former package or browser API.
 
-## Candidate
+## Released
 
 - Core: `@justusability/sdk@0.1.0`; browser API `Justusability`; `JustusabilityConfig`.
 - React: `@justusability/react@0.1.0`; `JustusabilityProvider`,
   `useJustusability`, `useJustusabilityIdentify`.
 - Scripts: `data-justusability-*`, `justusability:ready` and matching iframe messages.
-- Intended service origin: `https://research.justusability.com`. This is a proposed
-  release destination, not a verified live deployment. Override `endpoint` locally.
+- Service origin: `https://research.justusability.com`, verified live on 13 October.
+  Override `endpoint` locally.
 - Approved Justusability logos, local Inter/Space Grotesk fonts, green palette,
   rounded controls and reduced-motion behavior. Font licenses are included.
 - The package excludes historical `site/releases`; source history and legally
@@ -27,28 +27,28 @@ verification and 4 tamper/version tests pass. The real packaged SDK and app also
 pass synthetic consent-to-completion in Chromium and WebKit at 1440, 390 and 320px.
 No real participant or microphone was used. See the paired app receipt for commands.
 
-## Release still required
+## Publication and deployment
 
-The npm session returned E401 on 13 October. Neither new package is published and
-neither former package has been removed. Confirm ownership of the new scope after
-login; publish the new core before the React companion. Set up trusted publishing
-for the new package names before relying on OIDC/provenance. The existing repository
-identifier in workflow configuration is the real source repository, not a new brand
-repository claim.
+Both packages 0.1.0 were published from clean SDK commit `ca2cf27` through the
+existing maintainer account after browser security-key authentication. The free
+`justusability` organization owns the scope. Downloaded registry tarballs match
+the uploaded artifacts byte for byte. The initial release does not claim npm
+provenance; configure trusted publishing before future automated npm releases.
 
-New tags are `justusability-v0.1.0` and `justusability-react-v0.1.0`; historical
-`v0.1.0` and `react-v0.1.0` already exist and must not be overwritten. Tags are not
-created by this local implementation. GitHub Pages auto-deployment is disabled;
-the participant app will serve the SDK docs. Retire old Pages/domain hosting during
-the approved domain cutover.
+Tags `justusability-v0.1.0` and `justusability-react-v0.1.0` point to that source
+commit and are pushed. The two publish workflows were temporarily disabled while
+pushing these already-published initial tags, then both were re-enabled. Historical
+`v0.1.0` and `react-v0.1.0` tags were preserved. SDK CI passed on the published source.
 
-Build from clean committed source, verify the matching branded tag, then pack.
-The app pins that exact archive and its immutable URL/SRI. Publication does not
-configure the research origin, apply app migrations or move research data.
+The app pins the exact registry package. Scoped app `a1674b9` is deployed from
+production `f9abed7`, excluding local prototypes and migrations 0166/0167. The
+new domain serves the matching immutable artifact, source snapshot, docs and
+branded participant screens. Public Sightspool marketing redirects to Justusability.
+Existing operator authentication and signed provider callbacks retain their host.
 
-After the new service and registry packages are verified, remove `@sightspool/react`
-then `@sightspool/sdk` using authenticated npm owner operations. Recheck npm's live
-unpublish eligibility and dependent packages first. If npm refuses removal, report
-that restriction; do not claim deletion or silently substitute a retained package.
-The owner does not require backward compatibility. Registry removal cannot recall
-copies already downloaded or hosted elsewhere.
+Verification and retirement receipts are maintained in the paired app's
+`docs/justusability-release-2026-10-13.md`. Optional invitation analytics remains
+inactive on this production server. No research data or schema was migrated,
+no study was enabled, and no real participant audio was recorded for this release.
+
+Registry removal cannot recall copies already downloaded or hosted elsewhere.
