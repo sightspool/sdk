@@ -1,11 +1,11 @@
-import Sightspool, { type SightspoolConfig } from "@sightspool/sdk";
+import Justusability, { type JustusabilityConfig } from "@justusability/sdk";
 import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { researchUserId, type Identity } from "./identity";
 
-const Context = createContext(Sightspool);
-export type SightspoolProviderProps = {
+const Context = createContext(Justusability);
+export type JustusabilityProviderProps = {
   apiKey: string;
-  audience: SightspoolConfig["audience"];
+  audience: JustusabilityConfig["audience"];
   endpoint?: string;
   identity?: Identity | null;
   /** Controls recruitment visibility, not participant recording consent. */
@@ -14,24 +14,24 @@ export type SightspoolProviderProps = {
 };
 
 /** Mount once on the pages included in the research audience. Cleanup stops recruitment. */
-export function SightspoolProvider({ apiKey, audience, endpoint, identity, enabled = true, children }: SightspoolProviderProps) {
+export function JustusabilityProvider({ apiKey, audience, endpoint, identity, enabled = true, children }: JustusabilityProviderProps) {
   const userId = researchUserId(identity);
   useEffect(() => {
     if (!enabled) return;
-    Sightspool.init({ key: apiKey, endpoint, audience });
-    return () => Sightspool.destroy();
+    Justusability.init({ key: apiKey, endpoint, audience });
+    return () => Justusability.destroy();
   }, [apiKey, endpoint, audience, enabled]);
   useEffect(() => {
-    Sightspool.identify(userId);
-    if (enabled) Sightspool.resume();
-    else Sightspool.pause();
+    Justusability.identify(userId);
+    if (enabled) Justusability.resume();
+    else Justusability.pause();
   }, [apiKey, endpoint, audience, userId, enabled]);
-  return <Context.Provider value={Sightspool}>{children}</Context.Provider>;
+  return <Context.Provider value={Justusability}>{children}</Context.Provider>;
 }
 
-export function useSightspool() { return useContext(Context); }
-export function useSightspoolIdentify(identity: Identity | null | undefined) {
+export function useJustusability() { return useContext(Context); }
+export function useJustusabilityIdentify(identity: Identity | null | undefined) {
   const userId = researchUserId(identity);
-  useEffect(() => { Sightspool.identify(userId); }, [userId]);
+  useEffect(() => { Justusability.identify(userId); }, [userId]);
 }
-export type { Identity, SightspoolConfig };
+export type { Identity, JustusabilityConfig };

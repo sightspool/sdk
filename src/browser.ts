@@ -4,14 +4,12 @@ export default api;
 
 try {
   const script = document.currentScript as HTMLScriptElement | null;
-  const key = script?.dataset.sightspoolKey || script?.dataset.key;
-  const audience = script?.dataset.sightspoolAudience;
+  const key = script?.dataset.justusabilityKey;
+  const audience = script?.dataset.justusabilityAudience;
   if (key && (audience === "automatic" || audience === "all_visitors" || audience === "signed_in")) {
-    const theme = script?.dataset.sightspoolTheme;
-    api.init({ key, audience, theme: theme === "light" || theme === "auto" ? theme : "dark", endpoint: script?.dataset.sightspoolEndpoint || new URL(script!.src).origin });
+    const theme = script?.dataset.justusabilityTheme;
+    api.init({ key, audience, theme: theme === "light" || theme === "auto" ? theme : "dark", endpoint: script?.dataset.justusabilityEndpoint || new URL(script!.src).origin });
     if (script?.dataset.userId) api.identify(script.dataset.userId);
   }
-  // The old research-widget URL is an alias of this bundle, not another runtime.
-  (window as Window & { SightspoolResearch?: typeof api }).SightspoolResearch = api;
-  Promise.resolve().then(() => window.dispatchEvent(new Event("sightspool:ready")));
+  Promise.resolve().then(() => window.dispatchEvent(new Event("justusability:ready")));
 } catch { /* Browser auto-init must not interrupt the client app. */ }

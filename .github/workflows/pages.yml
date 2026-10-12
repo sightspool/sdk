@@ -1,21 +1,9 @@
 name: Docs site
 
-# Deploys the static docs site in `site/` to GitHub Pages. One-time setup:
-#   repo Settings → Pages → Source = "GitHub Actions".
-# sdk.sightspool.com is a compatibility host. Redirect the three documentation
-# pages to the main website; retain release archives and machine-readable files.
-# llms.txt remains available at the compatibility host.
-
+# Optional static preview only. Production SDK docs are served by the research app.
+# No automatic deployment to the former brand's GitHub Pages host on push.
+# Configure a reviewed preview destination before manually dispatching this workflow.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "site/**"
-      - "src/**"
-      - "scripts/**"
-      - "package.json"
-      - "llms.txt"
-      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -46,7 +34,7 @@ jobs:
       - run: pnpm test
       - run: pnpm test:release
       - run: node --test scripts/docs-redirects.test.mjs
-      - run: pnpm build:site --redirect-docs
+      - run: pnpm build:site
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

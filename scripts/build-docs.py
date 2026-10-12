@@ -48,4 +48,4 @@ while i < len(lines):
             i += 1; paragraph.append(lines[i])
         body.append('<p>' + inline(' '.join(paragraph)) + '</p>')
     i += 1
-page.write_text('<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sightspool research SDK</title>' + style + '</head><body><main class="wrap"><nav aria-label="SDK documentation"><a href="index.html">SDK guide</a><a href="trust.html">Data &amp; security</a><a href="demo.html">Try the SDK</a><a href="https://github.com/sightspool/sdk">GitHub</a></nav>' + '\n'.join(body) + '</main></body></html>\n')
+page.write_text('<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Justusability research SDK</title>' + style + '</head><body><main class="wrap"><nav aria-label="SDK documentation"><a href="index.html">SDK guide</a><a href="trust.html">Data &amp; security</a><a href="demo.html">Try the SDK</a><a href="https://research.justusability.com/sdk/releases">Source snapshots</a></nav>' + '\n'.join(body) + '</main></body></html>\n')

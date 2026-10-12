@@ -1,38 +1,18 @@
-# @sightspool/react
+# @justusability/react
 
-React bindings for the Sightspool research SDK. Version 0.2.0 requires
-`@sightspool/sdk` 0.4.x; these changes are prepared locally and not yet published.
+React bindings for `@justusability/sdk@0.1.0`. Both packages are local release candidates pending publication.
 
 ```tsx
-'use client'
-import { SightspoolProvider } from '@sightspool/react'
+import { JustusabilityProvider } from '@justusability/react'
 
-// On the pages included in your research:
-<SightspoolProvider
-  apiKey="YOUR_GO_LIVE_WIDGET_UUID"
-  audience="all_visitors"
-  identity={user ? { userId: user.id } : null}
->
+<JustusabilityProvider apiKey="YOUR_WORKSPACE_WIDGET_UUID" audience="automatic"
+  identity={loading ? undefined : user ? { userId: user.id } : null}>
   {children}
-</SightspoolProvider>
+</JustusabilityProvider>
 ```
 
-Use one provider per document. Its `endpoint` prop can target your matching local
-or self-hosted Sightspool workspace. `enabled={false}` pauses recruitment; it does
-not grant or revoke recording consent. Identity changes clear stale eligibility,
-logout hides signed-in-only invitations; all-visitors recruitment continues, and unmount removes listeners, polling and the launcher.
-Effects support SSR and React Strict Mode.
+Mount once per document. `undefined` means authentication is loading; `null` means signed out. Keep identity in sync with account changes and logout. Set `endpoint` for a local or self-hosted research service. `enabled` controls recruitment, not recording consent.
 
-`useSightspool()` exposes init, identify, pause, resume, destroy and getStatus.
-`useSightspoolIdentify(identity)` synchronizes an identity held deeper in the tree;
-use one authoritative identity source to avoid competing updates.
+Exports: `JustusabilityProvider`, `useJustusability`, `useJustusabilityIdentify`, `JustusabilityConfig`, and `Identity`. No former-brand aliases are provided. The underlying SDK preserves an already accepted conversation when recruitment stops.
 
-Old capture traits and the cookie-consent API are no longer part of this package.
-From SDK 0.5.0 the user ID you pass is sent to your own workspace's Sightspool
-endpoint on the offer request, where it is hashed workspace-scoped; it is held in
-memory only and never stored raw. Earlier versions never transmitted it.
-Consent and interviews remain in Sightspool's approved research flow.
-
-`audience` is required: `all_visitors` includes anonymous visitors without an identity;
-`signed_in` waits for a real session. This display setting must match the approved
-research plan and does not itself verify participant eligibility.
+Read the SDK README and participant privacy notice before installation.

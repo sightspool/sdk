@@ -46,24 +46,28 @@
         font-size: 14px; color: var(--faint); }
       hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
     
-:root { --accent:#75415f; --max:920px; --bg:#fcfafb; --code-bg:#f4eff2; }
+:root { --accent:#206347; --max:920px; --bg:#E8F6EE; --code-bg:#D8F2E4; }
 html { scroll-behavior:smooth; }
 .wrap { padding-top:32px; }
 h1 { font-size:clamp(32px,5vw,48px); line-height:1.12; margin:24px 0 18px; }
 h2 { scroll-margin-top:20px; }
 pre { white-space:pre-wrap; overflow-wrap:anywhere; }
-a:focus-visible,button:focus-visible,summary:focus-visible { outline:3px solid #75415f; outline-offset:4px; }
+a:focus-visible,button:focus-visible,summary:focus-visible { outline:3px solid #206347; outline-offset:4px; }
 nav { display:flex;flex-wrap:wrap;gap:10px 24px; padding-bottom:18px; border-bottom:1px solid var(--line); }
-.status,.note { padding:16px 20px; background:#f3ebf0; border:1px solid #ded0d9; border-radius:12px; color:#56344a; }
+.status,.note { padding:16px 20px; background:#D8F2E4; border:1px solid #B6EBD1; border-radius:12px; color:#082F20; }
 .cards { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0; }
-.card { padding:20px;border:1px solid var(--line);border-radius:14px;background:white; }
+.card { padding:20px;border:1px solid var(--line);border-radius:18px;background:white; }
 .card strong { display:block; margin-bottom:8px; }
 .table-wrap { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; }
 th,td { text-align:left;padding:14px 12px;vertical-align:top;border-bottom:1px solid var(--line); }
-button,.button { background:var(--accent);color:white;border:0;border-radius:8px;padding:11px 16px;cursor:pointer;font:inherit;display:inline-block;text-decoration:none; }
-button.secondary { color:var(--accent);background:#eee4eb; }
+button,.button { background:var(--accent);color:white;border:0;border-radius:999px;padding:11px 16px;cursor:pointer;font:inherit;display:inline-block;text-decoration:none; }
+button.secondary { color:var(--accent);background:#D8F2E4; }
 .controls { display:flex;flex-wrap:wrap;gap:10px;margin:20px 0; }
 .muted {color:var(--muted);} .hash {word-break:break-all;font-size:13px;}
 footer {margin-top:56px;padding-top:24px;border-top:1px solid var(--line);font-size:14px;}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto;}}
+
+@font-face{font-family:Inter;src:url("./brand/fonts/Inter-Regular.ttf") format("truetype");font-weight:400;font-display:swap}
+@font-face{font-family:SpaceGrotesk;src:url("./brand/fonts/SpaceGrotesk-Medium.ttf") format("truetype");font-weight:500;font-display:swap}
+body{font-family:Inter,Arial,sans-serif}h1,h2,h3{font-family:SpaceGrotesk,Inter,sans-serif;font-weight:500}

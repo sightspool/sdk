@@ -1,7 +1,7 @@
 {
-  "name": "@sightspool/sdk",
-  "version": "0.6.6",
-  "description": "Sightspool research SDK \u2014 invite website visitors and signed-in users into approved user research.",
+  "name": "@justusability/sdk",
+  "version": "0.1.0",
+  "description": "Justusability research SDK \u2014 invite website visitors and signed-in users into approved user research.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -18,24 +18,19 @@
     "README.md",
     "LICENSE",
     "NOTICE",
-    "site",
+    "site/*.html",
+    "site/*.js",
+    "site/*.css",
     "SECURITY.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "site/brand"
   ],
   "sideEffects": false,
   "license": "Apache-2.0",
-  "author": "Sightspool",
-  "homepage": "https://www.sightspool.com/sdk",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sightspool/sdk.git"
-  },
-  "bugs": {
-    "url": "https://github.com/sightspool/sdk/issues"
-  },
+  "author": "Justusability",
+  "homepage": "https://research.justusability.com/sdk",
   "keywords": [
-    "sightspool",
-    "user-research",
+    "justusability",
     "research",
     "interviews",
     "sdk"

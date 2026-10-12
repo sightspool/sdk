@@ -1,16 +1,7 @@
 # Security policy
 
-Report suspected vulnerabilities in the Sightspool SDK privately to
-security@sightspool.com. Include the package version, affected feature, impact and
-a minimal reproduction without customer data or secrets. Do not open a public
-issue containing exploit details or private information.
+Report suspected vulnerabilities privately through https://www.justusability.com/contact. Include the package version, affected feature, impact and a minimal reproduction without customer data or secrets. Do not open a public issue containing exploit details or private information.
 
-The existing disclosure policy is https://www.sightspool.com/.well-known/security.txt.
-It covers the public SDK packages and Sightspool service, not testing a customer's
-website without their authorization. There is no paid bounty or new response-time
-commitment implied here.
+This policy covers the Justusability research SDK and service, not testing a customer's website without permission. No paid bounty or response-time guarantee is implied. Version 0.1.0 is a local candidate with no independent security audit. Automated tests and release integrity checks are not a certification.
 
-Research SDK 0.4.0 is prepared locally and has not had an independent security audit.
-Automated tests and release integrity checks are not a security certification.
-The legacy capture API is retired; it is not the supported research installation.
-For data access/deletion requests, contact privacy@sightspool.com.
+For study questions or deletion requests, contact the research team that invited you or Justusability through the same contact page.

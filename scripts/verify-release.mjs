@@ -14,7 +14,7 @@ export function verifyRelease(directory, tag) {
   if (manifest.bundle.path !== `releases/${manifest.version}/${artifactId}/sdk.global.js`) throw Error('Versioned path mismatch');
   const pkg = JSON.parse(JSON.parse(source).files['package.json']);
   if (pkg.version !== manifest.version || pkg.name !== manifest.package) throw Error('Source package mismatch');
-  if (tag && (tag !== `v${manifest.version}` || manifest.sourceDirty)) throw Error('Release needs matching version tag and clean source');
+  if (tag && (tag !== `justusability-v${manifest.version}` || manifest.sourceDirty)) throw Error('Release needs matching version tag and clean source');
   return manifest;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

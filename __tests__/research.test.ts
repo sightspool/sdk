@@ -25,7 +25,7 @@ function browser() {
   const roots: any[] = [];
   function flatten(nodes: any[]): any[] {return nodes.flatMap(node=>[node,...flatten(node.children)]);}
   const elements = new Proxy([] as any[], {get(_target,prop){
-    const values=flatten(roots).filter(el=>el.className?.split(" ").includes("ss-launcher") || el.className === "ss-panel");
+    const values=flatten(roots).filter(el=>el.className?.split(" ").includes("ju-launcher") || el.className === "ju-panel");
     return Reflect.get(values,prop);
   }});
   const timers = new Map<number, () => void>();
@@ -117,11 +117,11 @@ test("one approved offer opens an embedded session; minimize and recruitment cha
     assert.equal(env.document.activeElement, launcher);
     launcher.onclick(); assert.equal(panel.inert, false);
     for (const fn of env.messages) {
-      fn({origin:"https://evil.example",source:frame.contentWindow,data:{type:"sightspool:panel:minimize"}});
-      fn({origin:"https://www.sightspool.com",source:{},data:{type:"sightspool:panel:minimize"}});
+      fn({origin:"https://evil.example",source:frame.contentWindow,data:{type:"justusability:panel:minimize"}});
+      fn({origin:"https://research.justusability.com",source:{},data:{type:"justusability:panel:minimize"}});
     }
     assert.equal(panel.inert, false);
-    for (const fn of env.messages) fn({origin:"https://www.sightspool.com",source:frame.contentWindow,data:{type:"sightspool:panel:minimize"}});
+    for (const fn of env.messages) fn({origin:"https://research.justusability.com",source:frame.contentWindow,data:{type:"justusability:panel:minimize"}});
     assert.equal(panel.inert, true);
     sdk.identify(null); sdk.pause(); sdk.destroy();
     env.document.visibilityState = "hidden"; env.visibility.forEach((fn) => fn());
@@ -223,24 +223,24 @@ test("invitation copy is text, dismissal restores before opening and receipt mes
     await env.respond(0,{available:true,offer:"capability",invitation:{title:"<script>private offer</script>",subtitle:"For a 10-minute feedback chat"}});
     const launcher=env.elements[0];
     assert.equal(launcher.children[1].children[0].textContent,"<script>private offer</script>");
-    env.storage.set("sightspool-widget-dismissed:"+key,"1");
+    env.storage.set("justusability-widget-dismissed:"+key,"1");
     sdk.destroy(); sdk.init({key,audience:"all_visitors"});
     await env.respond(1,{available:true,offer:"capability"});
     const restored=env.elements[0];
-    assert.match(restored.className,/ss-iconOnly/);
-    restored.onclick();assert.equal(env.elements.length,1);assert.doesNotMatch(restored.className,/ss-iconOnly/);
+    assert.match(restored.className,/ju-iconOnly/);
+    restored.onclick();assert.equal(env.elements.length,1);assert.doesNotMatch(restored.className,/ju-iconOnly/);
     restored.onclick();const panel=env.elements[1],frame=panel.children[1];
-    for(const listener of env.messages)listener({origin:"https://evil.example",source:frame.contentWindow,data:{type:"sightspool:interview:ended"}});
-    assert.equal(env.storage.get("sightspool-widget-session:"+key),undefined);
-    for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:{type:"sightspool:interview:ended"}});
-    assert.equal(env.storage.get("sightspool-widget-session:"+key),"ended");
+    for(const listener of env.messages)listener({origin:"https://evil.example",source:frame.contentWindow,data:{type:"justusability:interview:ended"}});
+    assert.equal(env.storage.get("justusability-widget-session:"+key),undefined);
+    for(const listener of env.messages)listener({origin:"https://research.justusability.com",source:frame.contentWindow,data:{type:"justusability:interview:ended"}});
+    assert.equal(env.storage.get("justusability-widget-session:"+key),"ended");
     assert.equal(restored.attributes["aria-label"],"View your accepted thank-you");
   });
 });
 
 test("reload restores an admitted session without a new offer or microphone activation",async()=>{
  await browserTest(async env=>{
-  env.storage.set("sightspool-widget-session:"+key,"active");
+  env.storage.set("justusability-widget-session:"+key,"active");
   sdk.init({key,audience:"signed_in"});
   assert.equal(env.requests.length,0);assert.equal(env.elements.length,1);
   sdk.identify('returning-user');sdk.pause();sdk.resume();
@@ -415,18 +415,18 @@ test("expired invitation refresh rechecks host identity and cannot replace an ac
     await env.respond(0,{available:true,offer:"expired-offer"});
     env.elements[0].onclick();
     const frame=env.elements[1].children[1];
-    const refresh={type:"sightspool:invitation:refresh"};
+    const refresh={type:"justusability:invitation:refresh"};
     for(const listener of env.messages)listener({origin:"https://evil.example",source:frame.contentWindow,data:refresh});
     assert.equal(env.requests.length,1);
-    for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:refresh});
+    for(const listener of env.messages)listener({origin:"https://research.justusability.com",source:frame.contentWindow,data:refresh});
     assert.equal(env.requests.length,2);
     assert.equal(JSON.parse(env.requests[1].input.body as string).identity,"current-person");
     await env.respond(1,{available:true,offer:"fresh-offer"});
     assert.equal(new URLSearchParams(new URL(frame.src).hash.slice(1)).get("offer"),"fresh-offer");
     assert.equal(frame.src.includes("current-person"),false);
     assert.ok(new URL(frame.src).searchParams.get("refresh"), "Refresh must navigate a new document, not only change its fragment");
-    for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:{type:"sightspool:interview:accepted"}});
-    for(const listener of env.messages)listener({origin:"https://www.sightspool.com",source:frame.contentWindow,data:refresh});
+    for(const listener of env.messages)listener({origin:"https://research.justusability.com",source:frame.contentWindow,data:{type:"justusability:interview:accepted"}});
+    for(const listener of env.messages)listener({origin:"https://research.justusability.com",source:frame.contentWindow,data:refresh});
     assert.equal(env.requests.length,2);
   });
 });
@@ -438,8 +438,8 @@ test("panel follows trusted content height and ignores forged or invalid resize 
     env.elements[0].onclick();
     const panel=env.elements[1],header=panel.children[0],frame=panel.children[1];
     header.offsetHeight=60;
-    const resize=(height:unknown,origin="https://www.sightspool.com",source=frame.contentWindow)=>{
-      for(const listener of env.messages)listener({origin,source,data:{type:"sightspool:panel:resize",height}});
+    const resize=(height:unknown,origin="https://research.justusability.com",source=frame.contentWindow)=>{
+      for(const listener of env.messages)listener({origin,source,data:{type:"justusability:panel:resize",height}});
     };
     resize(400);assert.equal(panel.style.height,"462px");
     resize(160.2);assert.equal(panel.style.height,"223px");

@@ -16,7 +16,7 @@ export default defineConfig([
   {
     entry: { sdk: "src/browser.ts" },
     format: ["iife"],
-    globalName: "Sightspool",
+    globalName: "Justusability",
     sourcemap: true,
     minify: true,
     treeshake: true,

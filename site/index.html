@@ -1,84 +1,46 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sightspool research SDK</title><link rel="stylesheet" href="styles.css"></head><body><main class="wrap"><nav aria-label="SDK documentation"><a href="index.html">SDK guide</a><a href="trust.html">Data &amp; security</a><a href="demo.html">Try the SDK</a><a href="https://github.com/sightspool/sdk">GitHub</a></nav><header><h1>@sightspool/sdk</h1></header>
-<p>Embed Sightspool research in your product. The SDK invites website visitors and signed-in users into owner-approved research during User Hours, then opens Sightspool for consent and the interview. It does not capture host-page content, form values or browsing activity. From 0.6.6 it reports bounded invitation display and widget-control milestones; see the data and security guide.</p>
-<p>This is the <strong>research API introduced in 0.4.0</strong>, a deliberate change from the old capture SDK. Install the exact version below and review upgrades before deploying them — 0.5.0 narrows a privacy promise, so read the CHANGELOG before taking it. Old capture code and documentation are archived in <code>docs/legacy</code>.</p>
-<p>Read the <a href="https://www.sightspool.com/sdk/data-security">data and security guide</a>, inspect the <a href="https://github.com/sightspool/sdk">public source</a>, or try the <a href="https://www.sightspool.com/sdk/demo">isolated SDK demo</a>.</p>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Justusability research SDK</title><link rel="stylesheet" href="styles.css"></head><body><main class="wrap"><nav aria-label="SDK documentation"><a href="index.html">SDK guide</a><a href="trust.html">Data &amp; security</a><a href="demo.html">Try the SDK</a><a href="https://research.justusability.com/sdk/releases">Source snapshots</a></nav><header><h1>Justusability research SDK</h1></header>
+<p>Invite website visitors and signed-in users into approved research with Justusability. The widget opens a consented conversation, a voice-note option or a booking link, according to the research team&#x27;s approved plan. Participants do not need an account.</p>
+<p>Version <strong>0.1.0 is a local release candidate</strong>. Publication and the <code>research.justusability.com</code> deployment must be completed before these production examples can be used. Use an explicit local endpoint for development. This release does not provide the former brand&#x27;s package, browser globals or installation attributes.</p>
 <h2>npm</h2>
-<pre><code>npm install --save-exact @sightspool/sdk@0.5.0</code></pre>
-<pre><code>import Sightspool from &#x27;@sightspool/sdk&#x27;
+<p>After publication, install the exact reviewed release:</p>
+<pre><code>npm install --save-exact @justusability/sdk@0.1.0</code></pre>
+<pre><code>import Justusability from &#x27;@justusability/sdk&#x27;
 
-Sightspool.init({ key: &#x27;YOUR_GO_LIVE_WIDGET_UUID&#x27;, audience: &#x27;all_visitors&#x27; })
-// Optional when a visitor signs in:
-Sightspool.identify(currentUser.id)
-
-// On logout (anonymous visitors remain eligible in all_visitors mode):
-Sightspool.identify(null)
-
-// When leaving the pages included in your research:
-Sightspool.destroy()</code></pre>
-<p>Choose an explicit <code>audience</code> matching the approved interview plan:</p>
-<p>- <code>all_visitors</code>: anonymous website visitors and signed-in users. Initialize once on the relevant website pages. No identity or login is required; logout continues recruitment as a visitor. - <code>signed_in</code>: only users with a real signed-in session. Initialize in your authenticated app shell and call <code>identify(actualUserId)</code> after authentication resolves. Until then, no request or invitation is made. <code>identify(null)</code> immediately removes invitations on logout.</p>
-<p>There is no default audience. Missing or invalid audience configuration stays idle.</p>
-<p><code>identify</code> sends the id you pass, over TLS, to your own workspace&#x27;s Sightspool endpoint, on the offer request only. Sightspool hashes it workspace-scoped on arrival and never stores it raw in any table, log or payload. The SDK holds it in memory for the page&#x27;s lifetime and never writes it to storage, a cookie, a URL, a fragment or a log. <strong>Through 0.4.2 the id was never transmitted; from 0.5.0 it is</strong> — it is what lets a cohort-targeted card tell whether you are one of the people its research question is about. Do not invent IDs for visitors. This client setting controls display; it does not authenticate a participant or change the server-approved research cohort.</p>
-<p>An id that is not a non-empty string of at most 200 characters after trimming is treated as unidentified, exactly like <code>identify(null)</code>. Over-length ids are never truncated: a truncated id is a different person.</p>
-<h2>Matching your analytics identity</h2>
-<p>Cohort-targeted cards match against journey cohorts derived from PostHog. Your product <strong>must call <code>posthog.identify()</code> with the same id it passes Sightspool.</strong> If you identify PostHog with an email and Sightspool with an internal UUID, those are different identities that never meet — the match rate is a flat zero that looks exactly like an empty cohort rather than like a misconfiguration.</p>
+Justusability.init({ key: &#x27;YOUR_WORKSPACE_WIDGET_UUID&#x27;, audience: &#x27;automatic&#x27; })
+Justusability.identify(undefined) // Authentication is loading.
+Justusability.identify(currentUser?.id ?? null) // After authentication resolves.
+// Keep this in sync on login, account changes and logout.
+// Websites without accounts can call identify(null) immediately.</code></pre>
 <h2>Script tag</h2>
-<p>For visitors, no authentication integration is needed:</p>
-<pre><code>&lt;script async src=&quot;https://www.sightspool.com/sdk.global.js&quot;
-  data-sightspool-key=&quot;YOUR_GO_LIVE_WIDGET_UUID&quot;
-  data-sightspool-audience=&quot;all_visitors&quot;&gt;&lt;/script&gt;</code></pre>
-<p>For signed-in-only research, listen for readiness before loading the SDK, then synchronize your actual session:</p>
-<pre><code>&lt;script&gt;
-  let sightspoolUserId = null;
-  function syncSightspoolUser(userId) {
-    sightspoolUserId = userId;
-    window.Sightspool?.identify(userId);
-  }
-  window.addEventListener(&#x27;sightspool:ready&#x27;, () =&gt; {
-    window.Sightspool.identify(sightspoolUserId);
-  });
-  // Call syncSightspoolUser(actualUser.id) when authentication resolves.
-  // Call syncSightspoolUser(null) on logout.
-&lt;/script&gt;
-&lt;script async src=&quot;https://www.sightspool.com/sdk.global.js&quot;
-  data-sightspool-key=&quot;YOUR_GO_LIVE_WIDGET_UUID&quot;
-  data-sightspool-audience=&quot;signed_in&quot;&gt;&lt;/script&gt;</code></pre>
-<p>Go live supplies the correct key and endpoint. Local keys belong to the local Sightspool database and cannot be paired with production. Script installs default to the origin serving the bundle; <code>data-sightspool-endpoint</code> overrides that for a CDN or self-hosted install. npm defaults to <code>https://www.sightspool.com</code>.</p>
+<p>Use the exact versioned URL and matching integrity hash supplied by your research setup. This unversioned example shows the attribute names:</p>
+<pre><code>&lt;script async src=&quot;https://research.justusability.com/sdk.global.js&quot;
+  data-justusability-key=&quot;YOUR_WORKSPACE_WIDGET_UUID&quot;
+  data-justusability-audience=&quot;all_visitors&quot;
+  data-justusability-theme=&quot;light&quot;
+  crossorigin=&quot;anonymous&quot; referrerpolicy=&quot;no-referrer&quot;&gt;&lt;/script&gt;</code></pre>
+<p><code>window.Justusability</code> is the browser API. Listen for <code>justusability:ready</code> before calling it from a script integration. Use <code>data-justusability-endpoint</code> when the bundle is served from a CDN or a different origin. Script installs otherwise use the bundle&#x27;s origin; npm defaults to <code>https://research.justusability.com</code>.</p>
+<h2>Audience and identity</h2>
+<p>- <code>automatic</code> follows the approved research question. Call <code>identify(undefined)</code> while authentication is loading, <code>identify(actualUserId)</code> after sign-in, and <code>identify(null)</code> for a confirmed signed-out visitor. - <code>all_visitors</code> supports visitors without authentication integration. - <code>signed_in</code> waits for a valid signed-in user ID. Invitations disappear on logout.</p>
+<p>There is no default audience. Missing or invalid configuration stays idle. Identity controls eligibility, not participant authentication or recording consent. When cohort matching uses PostHog, supply the same opaque user ID used in that product&#x27;s PostHog integration. Do not invent visitor IDs or send email addresses unnecessarily.</p>
 <h2>API</h2>
-<table><tr><th>Method</th><th>Behavior</th></tr><tr><td><code>init({ key, audience, endpoint? })</code></td><td>Start research for the explicit audience; UUID key required. Repeating the same configuration is idempotent. Changing it tears down the previous runtime.</td></tr><tr><td><code>identify(userId)</code></td><td>Enable signed-in eligibility, and send that id on the offer request so a cohort-targeted card can match it. Held in memory only, never stored. <code>null</code> clears it — as does any value that is not a non-empty string of at most 200 characters after trimming. Signed-in-only invitations disappear; all-visitors recruitment continues.</td></tr><tr><td><code>pause()</code></td><td>Pause recruitment, abort the current request and remove the launcher.</td></tr><tr><td><code>resume()</code></td><td>Resume recruitment for the configured audience. Does not bypass approval or hours.</td></tr><tr><td><code>destroy()</code></td><td>Remove the launcher, listeners and polling. An already opened interview is not silently ended.</td></tr><tr><td><code>getStatus()</code></td><td><code>not_initialized</code>, <code>signed_out</code>, <code>paused</code>, <code>checking</code>, <code>unavailable</code>, <code>available</code> or <code>error</code>.</td></tr></table>
-<p><code>pause</code> and <code>resume</code> are recruitment controls, not consent to record. Participants still review the offer, eligibility and recording consent in Sightspool. Owners approve the research setup separately. The backend remains authoritative for availability, capacity, signed offers and interview admission.</p>
-<h2>React / Next.js</h2>
-<p>Use a client component on the pages included in your research. Identity is optional for all visitors:</p>
-<pre><code>&#x27;use client&#x27;
-import { useEffect } from &#x27;react&#x27;
-import Sightspool from &#x27;@sightspool/sdk&#x27;
+<table><tr><th>Method</th><th>Behaviour</th></tr><tr><td><code>init({ key, audience, endpoint?, theme? })</code></td><td>Initialise one runtime. The key is a workspace UUID. Theme is <code>light</code>, <code>dark</code> or <code>auto</code>.</td></tr><tr><td><code>identify(userId)</code></td><td>Synchronise eligibility. A non-empty ID up to 200 characters is sent only on the offer request, held in memory and hashed per workspace by the service. <code>null</code> means signed out; <code>undefined</code> means loading in automatic mode.</td></tr><tr><td><code>pause()</code> / <code>resume()</code></td><td>Control recruitment. They do not bypass approved availability, capacity or consent.</td></tr><tr><td><code>destroy()</code></td><td>Remove recruitment and listeners. An already opened conversation is not silently ended.</td></tr><tr><td><code>getStatus()</code></td><td>Read <code>not_initialized</code>, <code>signed_out</code>, <code>paused</code>, <code>checking</code>, <code>unavailable</code>, <code>available</code> or <code>error</code>.</td></tr></table>
+<h2>React</h2>
+<p>Use the optional <code>@justusability/react@0.1.0</code> companion after publication:</p>
+<pre><code>import { JustusabilityProvider } from &#x27;@justusability/react&#x27;
 
-export function Research({ userId = null }: { userId?: string | null }) {
-  useEffect(() =&gt; {
-    Sightspool.init({ key: &#x27;YOUR_GO_LIVE_WIDGET_UUID&#x27;, audience: &#x27;all_visitors&#x27; })
-    Sightspool.identify(userId)
-    return () =&gt; Sightspool.destroy()
-  }, [userId])
-  return null
-}</code></pre>
-<p>Optional <code>@sightspool/react</code> 0.2.0 provides <code>SightspoolProvider</code> and research hooks. It requires SDK 0.4.x; see <code>packages/react/README.md</code>. Use one instance per document.</p>
-<h2>Privacy and verification</h2>
-<p>The offer request contains only the public workspace key, a random per-workspace browser-session device token, and the operation name. No user ID, traits, auth secrets, DOM text or page URL is included. Requests use <code>credentials: &#x27;omit&#x27;</code>. Offer requests explicitly suppress the Referer header; Origin and ordinary network metadata still reach the service. No microphone or recording starts on initialization or launcher display.</p>
-<p>Polling occurs at most once per 15-second interval while visible and eligible for the configured audience, plus explicit identity/resume/visibility changes. Only one request is in flight; requests time out after 10 seconds. Identity changes, pause, hidden tabs and destruction invalidate stale responses. Logout removes signed-in-only invitations; all-visitors mode refreshes as a visitor.</p>
-<p>A connection receipt proves that the SDK contacted the configured server. It does not certify your app&#x27;s complete login/logout flow or a successful interview. Test anonymous visits, login, navigation, logout, slow loading and unmounting in both modes. Use Go live for server connection checks. A closed User Hours window can connect without an invitation. Do not fabricate approval or weaken an origin/CSP policy to make it show.</p>
-<h2>Verified script releases</h2>
-<p>Go live generates a versioned, content-addressed script URL with SHA-384 integrity, <code>crossorigin=&quot;anonymous&quot;</code> and <code>referrerpolicy=&quot;no-referrer&quot;</code>. Use those values together. The unversioned script examples above are a convenience URL whose contents can change. To pin a reviewed release, use Go live or the manifest linked from the data and security guide.</p>
-<p>For self-hosting, copy the reviewed bundle and preserve its integrity value. Set <code>data-sightspool-endpoint</code> to the workspace Sightspool origin explicitly, because script auto-init otherwise defaults to the bundle host. Keep your own CSP and nonce requirements; allow only the required script host and Sightspool connection origin.</p>
+&lt;JustusabilityProvider apiKey=&quot;YOUR_WORKSPACE_WIDGET_UUID&quot;
+  audience=&quot;automatic&quot; identity={user ? { userId: user.id } : null}&gt;
+  {children}
+&lt;/JustusabilityProvider&gt;</code></pre>
+<p>Pass <code>undefined</code> while authentication is loading. Mount one provider per document on the pages included in the research. The companion exports <code>useJustusability</code> and <code>useJustusabilityIdentify</code>.</p>
+<h2>Data and controls</h2>
+<p>The SDK does not capture host-page content, form values, keystrokes or browsing history. It sends a public workspace key, a random browser-session device token and, when supplied, an ID for cohort eligibility. Device and restoration markers use session storage; identity stays in memory. Requests omit cookies and referrers. Hosting infrastructure still receives ordinary network metadata.</p>
+<p>Where supported by the service, bounded invitation events record visibility, first interaction, panel opening, dismissal, minimisation and participation controls. DNT/GPC disables optional reports without preventing participation. Polling is not an impression, invitation counts are not unique people, and booking clicks are not confirmed bookings. The service links outcomes using random invitation IDs without participant profiles or raw capability/device tokens in analytics.</p>
+<p>The participant separately agrees to research and recording. New interviews are human-led; AI interviewing remains disabled. Minimise keeps an accepted conversation running. Stop and withdrawal controls belong to the conversation, not the recruitment API.</p>
+<p>Read the <a href="https://research.justusability.com/sdk/data-security">data guide</a> and <a href="https://research.justusability.com/i/privacy">participant privacy notice</a>.</p>
+<h2>Verification and self-hosting</h2>
+<p>Inspect <code>dist/release.json</code> for the source commit, SHA-256, SHA-384 integrity and matching source snapshot. <code>dist/sdk.global.js</code> is the browser bundle. Serve the packaged <code>site/brand/</code> files at <code>/brand/</code> on the selected endpoint alongside the participant service. The service must implement the research protocol; serving the JavaScript alone is insufficient.</p>
+<p>Test consent, origin restrictions, login/logout, keyboard controls, mobile layouts, recording recovery and DNT/GPC before enabling a study. No independent security audit is claimed. License and historical attribution notices remain in the package.</p>
 <h2>Maintainers</h2>
-<pre><code>pnpm install --frozen-lockfile
-pnpm -r --include-workspace-root build
-pnpm -r --include-workspace-root test
-npm publish --dry-run</code></pre>
-<p>The npm and browser builds share <code>src/research.ts</code>. The Sightspool app copies <code>sdk.global.js</code> from this package and serves <code>research-widget.js</code> as a byte-identical alias for recent internal snippets. Neither build imports the former capture engine. See <code>docs/research-sdk-transition.md</code> for release sequencing. Apache-2.0.</p>
-<h2>Embedded interview panel</h2>
-<p>An available invitation opens one bottom-right panel on the product page. Consent, waiting for and speaking with the founder, and completion remain inside its isolated Sightspool iframe. AI interviewing, takeover and backup are deferred for launch; when the founder is unavailable, the server does not issue a replacement interview. Minimize or Escape hides the panel; Return to interview reopens the same session. Minimize does not mute, end or withdraw. Use the explicit in-panel controls to stop audio or delete interview evidence.</p>
-<p>Allow the configured Sightspool origin in your site&#x27;s <code>frame-src</code> policy and permit microphone delegation to that origin if founder audio is used. Preserve other CSP and Permissions Policy restrictions; a host policy may intentionally block audio. The iframe requests a microphone only after explicit participant action. The frame is restricted to the workspace&#x27;s saved product origin and exchanges only presentation and accepted/ended lifecycle messages with its parent, never interview text, capabilities or audio. Interviews stay in the panel. Privacy and Sightspool attribution links open a separate tab.</p>
-<p>Once opened, the panel stays mounted across visibility changes, pause, identity changes and SDK destroy/remount, so recruitment cleanup cannot silently end a call. Destroy stops further recruitment. The active panel remains reachable until the page is left. A full document navigation interrupts media. A tab-scoped marker restores the saved interview after reload; the app validates the saved capability and a participant must explicitly resume before enabling a microphone. This does not promise uninterrupted audio or a founder-phone reconnect grace period.</p>
-<p>The launcher uses the approved invitation duration and thank-you label supplied by Sightspool. Dismissal leaves a small logo button: the first click restores the message and the second opens the interview. After completion or early stopping, the small checked button opens the accepted thank-you receipt directly. The app minimises after eight seconds once it is safe to close the recording UI. Claim instructions come from the frozen interview terms; the SDK issues no rewards. Tab restoration supplements the server&#x27;s contact and capacity rules.</p>
-<p>Placement is bottom-right on desktop and bottom-centre up to 560px, with safe-area spacing and reduced-motion support. Set <code>theme: &quot;light&quot; | &quot;dark&quot; | &quot;auto&quot;</code> in <code>init()</code> or <code>data-sightspool-theme</code> on a script installation; the default is dark. Another bottom-right customer widget may require coordinated placement; configurable offsets are not supplied.</p></main></body></html>
+<p>Run <code>pnpm install --frozen-lockfile</code>, <code>pnpm test</code>, <code>pnpm build</code>, <code>pnpm test:release</code>, and the companion package checks. Build a clean committed source before producing the final release archive. Release tags are <code>justusability-v0.1.0</code> and <code>justusability-react-v0.1.0</code>; historical unprefixed tags are not reused. Only the current Justusability artifacts are distributed; historical releases remain in source history for provenance.</p></main></body></html>

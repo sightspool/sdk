@@ -1,3 +1,9 @@
+# @justusability/sdk
+
+## 0.1.0 — 13 October 2026
+
+Initial Justusability research SDK candidate, continuing the existing research runtime. New package, `Justusability` browser global, `data-justusability-*` installation attributes and `justusability:*` messages. No former-brand API aliases. Endpoint defaults to `https://research.justusability.com`; a configured deployment is required. Participant branding is supplied by the matching service release. Consent, origin checks, identity handling and opt-outs are retained. Publication and hosted cutover are separate from this local build.
+
 # 0.6.6 — invitation funnel (local candidate)
 
 - Add bounded invitation display/control analytics and continuity across polling.

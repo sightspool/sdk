@@ -1,7 +1,7 @@
 {
-  "name": "@sightspool/react",
-  "version": "0.2.0",
-  "description": "React bindings for the Sightspool research SDK",
+  "name": "@justusability/react",
+  "version": "0.1.0",
+  "description": "React bindings for the Justusability research SDK",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,25 +21,14 @@
   ],
   "sideEffects": false,
   "license": "Apache-2.0",
-  "author": "Sightspool",
-  "homepage": "https://github.com/sightspool/sdk/tree/main/packages/react#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sightspool/sdk.git",
-    "directory": "packages/react"
-  },
-  "bugs": {
-    "url": "https://github.com/sightspool/sdk/issues"
-  },
+  "author": "Justusability",
+  "homepage": "https://research.justusability.com/sdk",
   "keywords": [
-    "sightspool",
-    "react",
-    "nextjs",
-    "analytics",
-    "product-analytics",
-    "user-research",
-    "intent",
-    "sdk"
+    "justusability",
+    "research",
+    "interviews",
+    "sdk",
+    "react"
   ],
   "engines": {
     "node": ">=18"
@@ -54,14 +43,14 @@
     "prepublishOnly": "pnpm run build"
   },
   "peerDependencies": {
-    "@sightspool/sdk": ">=0.4.0 <0.6.0",
-    "react": ">=18"
+    "react": ">=18",
+    "@justusability/sdk": ">=0.1.0 <0.2.0"
   },
   "devDependencies": {
-    "@sightspool/sdk": "workspace:^",
     "@types/react": "^19.0.0",
     "react": "^19.0.0",
     "tsup": "^8.5.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@justusability/sdk": "workspace:^"
   }
 }

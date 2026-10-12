@@ -6,10 +6,10 @@ import { join } from 'node:path';
 import { verifyRelease } from './verify-release.mjs';
 for (const file of ['sdk.global.js', 'source.json', 'release.json']) {
   test(`release verification rejects changed ${file}`, () => {
-    const dir = mkdtempSync(join(tmpdir(), 'sightspool-release-'));
+    const dir = mkdtempSync(join(tmpdir(), 'justusability-release-'));
     try {
       cpSync('dist', dir, {recursive:true});
-      assert.equal(verifyRelease(dir).package, '@sightspool/sdk');
+      assert.equal(verifyRelease(dir).package, '@justusability/sdk');
       if(file === 'release.json') {
         const manifest = JSON.parse(readFileSync(join(dir,file),'utf8'));
         manifest.bundle.path = 'releases/latest/sdk.global.js';
@@ -19,4 +19,4 @@ for (const file of ['sdk.global.js', 'source.json', 'release.json']) {
     } finally { rmSync(dir,{recursive:true,force:true}); }
   });
 }
-test('release verification rejects a tag for another version', () => assert.throws(() => verifyRelease('dist','v999.0.0')));
+test('release verification rejects a tag for another version', () => assert.throws(() => verifyRelease('dist','justusability-v999.0.0')));

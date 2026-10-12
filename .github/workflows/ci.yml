@@ -17,7 +17,7 @@ jobs:
           node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # --include-workspace-root: the root is @sightspool/sdk (a workspace member), which
+      # --include-workspace-root: the root is @justusability/sdk (a workspace member), which
       # pnpm -r excludes by default. Build first so the SDK's .d.ts exists for react's
       # type-check/build (pnpm topo-orders: sdk before react).
       - run: pnpm -r --include-workspace-root build

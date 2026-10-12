@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 import { readFile, writeFile } from "node:fs/promises";
 
-// React bindings — ESM + CJS + types. react / react/jsx-runtime / @sightspool/sdk are
+// React bindings — ESM + CJS + types. react / react/jsx-runtime / @justusability/sdk are
 // peer deps, so they're external (never bundled).
 //
 // "use client": esbuild strips a module-level directive when bundling (incl. via the
@@ -18,7 +18,7 @@ export default defineConfig({
   treeshake: true,
   minify: false,
   target: "es2018",
-  external: ["react", "react/jsx-runtime", "@sightspool/sdk"],
+  external: ["react", "react/jsx-runtime", "@justusability/sdk"],
   esbuildOptions(options) {
     options.jsx = "automatic";
   },

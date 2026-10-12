@@ -1,12 +1,14 @@
 name: Release
 
 # Publishes to npm with provenance via OIDC **trusted publishing** (no token) when a
-# v* tag is pushed:
-#   pnpm version patch|minor|major   # bumps package.json + creates the tag
-#   git push --follow-tags
+# justusability-v* tag is pushed:
+#   pnpm version patch|minor|major --no-git-tag-version
+#   git commit -am "Release Justusability SDK"
+#   git tag justusability-vX.Y.Z
+# Push only after release authorization. Historical v* tags belong to the old package.
 #
 # One-time setup on npmjs.com (required before the first tokenless publish):
-#   npmjs.com → @sightspool/sdk → Settings → Trusted Publisher → GitHub Actions,
+#   npmjs.com → @justusability/sdk → Settings → Trusted Publisher → GitHub Actions,
 #   repository `sightspool/sdk`, workflow `release.yml` (leave Environment blank).
 # Once configured, npm authenticates this workflow via OIDC (`id-token: write`) — no
 # NPM_TOKEN secret. We install/build with pnpm but publish with the npm CLI, which is the
@@ -18,7 +20,7 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["justusability-v*"]
 
 permissions:
   contents: read

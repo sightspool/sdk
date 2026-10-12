@@ -20,7 +20,7 @@ importers:
 
   packages/react:
     devDependencies:
-      '@sightspool/sdk':
+      '@justusability/sdk':
         specifier: workspace:^
         version: link:../..
       '@types/react':

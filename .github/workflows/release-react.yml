@@ -1,21 +1,21 @@
 name: Release react
 
-# Publishes @sightspool/react to npm with provenance via OIDC trusted publishing (no
-# token) when a `react-v*` tag is pushed:
+# Publishes @justusability/react to npm with provenance via OIDC trusted publishing (no
+# token) when a `justusability-react-v*` tag is pushed:
 #   cd packages/react && npm version patch --no-git-tag-version
-#   git commit -am "react 0.1.x" && git tag react-vX.Y.Z && git push --follow-tags
+#   git commit -am "react 0.1.x" && git tag justusability-react-vX.Y.Z && git push --follow-tags
 #
 # One-time setup on npmjs.com (required before the first tokenless publish):
-#   npmjs.com → @sightspool/react → Settings → Trusted Publisher → GitHub Actions,
+#   npmjs.com → @justusability/react → Settings → Trusted Publisher → GitHub Actions,
 #   repository `sightspool/sdk`, workflow `release-react.yml` (leave Environment blank).
 #
 # Like the core SDK, we install/build with pnpm but publish with the npm CLI (the
-# canonical OIDC client, >= 11.5.1). The core SDK (@sightspool/sdk) keeps its own `v*`
-# tags + release.yml — `react-v*` never matches `v*`, so the two never collide.
+# canonical OIDC client, >= 11.5.1). The core SDK (@justusability/sdk) keeps its own `justusability-v*`
+# tags + release.yml — `justusability-react-v*` never matches `justusability-v*`, so the two never collide.
 
 on:
   push:
-    tags: ["react-v*"]
+    tags: ["justusability-react-v*"]
 
 permissions:
   contents: read
@@ -37,12 +37,14 @@ jobs:
       # pnpm builds first via topo order).
       - run: pnpm -r --include-workspace-root build
       - run: pnpm -r --include-workspace-root test
+      - name: Verify companion release tag
+        run: node -e 'if (process.env.GITHUB_REF_NAME !== "justusability-react-v" + require("./packages/react/package.json").version) process.exit(1)'
       - run: npm install -g npm@11
       # Drop the workspace:* dev link so it can't leak into the published manifest (the
-      # published @sightspool/sdk dependency is the real range in peerDependencies). npm
+      # published @justusability/sdk dependency is the real range in peerDependencies). npm
       # publish doesn't rewrite workspace: protocols the way pnpm publish does.
-      - name: Publish @sightspool/react
+      - name: Publish @justusability/react
         working-directory: packages/react
         run: |
-          npm pkg delete devDependencies.@sightspool/sdk
+          npm pkg delete devDependencies.@justusability/sdk
           npm publish --provenance --access public
